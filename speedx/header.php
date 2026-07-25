@@ -33,7 +33,7 @@ exit;
 </div>
 
 <header class="site-header sx-surface-raised">
-<div class="header-inner navin">
+<div class="header-inner">
 <!-- Brand -->
 <div class="site-branding">
 <div class="brand-monogram sx-surface-pressed">
@@ -50,7 +50,7 @@ echo esc_html( substr( get_bloginfo( 'name' ), 0, 2 ) );
 </span>
 </div>
 
-<!-- Primary Navigation (Desktop) -->
+<!-- Primary Navigation -->
 <nav class="main-navigation" aria-label="<?php esc_attr_e( 'Primary Menu', 'speedx' ); ?>">
 <?php
 wp_nav_menu( [
@@ -73,10 +73,9 @@ wp_nav_menu( [
 </div>
 </header>
 
-<!-- Mobile Navigation Drawer (outside header for fixed positioning) -->
+<!-- Mobile Navigation Drawer -->
 <div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
 <div class="mobile-nav-inner">
-<!-- Mobile menu will be populated by JS or use same menu location -->
 <?php
 wp_nav_menu( [
 'theme_location' => 'primary',
