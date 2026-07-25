@@ -1,207 +1,300 @@
 /**
  * SpeedX SPA Router
- * 
- * Handles client-side navigation with History API and fetch.
- * Zero dependencies, vanilla JavaScript.
+ * Handles partial page loads using History API and Fetch
  * 
  * @package SpeedX
- * @version 2.0.0
  */
 
-class SpeedXRouter {
-	constructor() {
-		this.contentContainer = document.getElementById( 'content-container' );
-		this.progressBar = document.getElementById( 'sx-progress-bar' );
-		this.loader = document.getElementById( 'sx-loader' );
-		this.isTransitioning = false;
-		
-		this.init();
-	}
+(function() {
+'use strict';
 
-	init() {
-		// Intercept all internal links.
-		document.addEventListener( 'click', this.handleLinkClick.bind( this ) );
-		
-		// Handle browser back/forward.
-		window.addEventListener( 'popstate', this.handlePopState.bind( this ) );
-		
-		// Update progress bar on scroll.
-		window.addEventListener( 'scroll', this.updateProgressBar.bind( this ), { passive: true } );
-		
-		// Initial load complete.
-		this.hideLoader();
-	}
+// Configuration
+const config = {
+contentSelector: '#content-container',
+loaderSelector: '#sx-loader',
+progressSelector: '#sx-progress-bar',
+apiEndpoint: window.speedxConfig ? window.speedxConfig.apiUrl : '/wp-json/speedx/v1/fragment',
+nonce: window.speedxConfig ? window.speedxConfig.nonce : '',
+};
 
-	/**
-	 * Handle link clicks for SPA navigation.
-	 * @param {Event} event - Click event.
-	 */
-	handleLinkClick( event ) {
-		const link = event.target.closest( 'a[href]' );
-		
-		if ( ! link || ! this.shouldIntercept( link ) ) {
-			return;
-		}
-		
-		event.preventDefault();
-		
-		const url = link.href;
-		this.navigate( url );
-	}
+// State
+let isLoading = false;
+let currentUrl = window.location.href;
 
-	/**
-	 * Determine if a link should be intercepted.
-	 * @param {HTMLAnchorElement} link - Link element.
-	 * @return {boolean} True if should intercept.
-	 */
-	shouldIntercept( link ) {
-		// Skip external links.
-		if ( link.hostname !== window.location.hostname ) {
-			return false;
-		}
-		
-		// Skip admin links.
-		if ( link.pathname.includes( '/wp-admin/' ) ) {
-			return false;
-		}
-		
-		// Skip hash-only links.
-		if ( link.hash && link.pathname === window.location.pathname ) {
-			return false;
-		}
-		
-		// Skip links with data-no-spa attribute.
-		if ( link.hasAttribute( 'data-no-spa' ) ) {
-			return false;
-		}
-		
-		return true;
-	}
-
-	/**
-	 * Navigate to a new URL.
-	 * @param {string} url - Target URL.
-	 */
-	async navigate( url ) {
-		if ( this.isTransitioning ) {
-			return;
-		}
-		
-		this.isTransitioning = true;
-		this.showLoader();
-		
-		try {
-			const response = await this.fetchContent( url );
-			const data = await response.json();
-			
-			if ( data.success ) {
-				this.updateContent( data.html, data.title, url );
-			} else {
-				throw new Error( 'Failed to load content' );
-			}
-		} catch ( error ) {
-			console.error( 'SpeedX Router Error:', error );
-			window.location.href = url; // Fallback to full page load.
-		} finally {
-			this.isTransitioning = false;
-		}
-	}
-
-	/**
-	 * Fetch content from REST API.
-	 * @param {string} url - URL to fetch.
-	 * @return {Promise<Response>} Fetch response.
-	 */
-	fetchContent( url ) {
-		return fetch( speedxAjax.restUrl + '?url=' + encodeURIComponent( url ), {
-			headers: {
-				'X-WP-Nonce': speedxAjax.restNonce,
-				'X-SpeedX-SPA': 'true',
-			},
-		} );
-	}
-
-	/**
-	 * Update page content.
-	 * @param {string} html - New HTML content.
-	 * @param {string} title - New page title.
-	 * @param {string} url - New URL.
-	 */
-	updateContent( html, title, url ) {
-		// Fade out.
-		this.contentContainer.style.opacity = '0';
-		this.contentContainer.style.transition = 'opacity 0.3s ease';
-		
-		setTimeout( () => {
-			// Update DOM.
-			this.contentContainer.innerHTML = html;
-			document.title = title;
-			
-			// Update browser history.
-			history.pushState( { path: url }, '', url );
-			
-			// Fade in.
-			this.contentContainer.style.opacity = '1';
-			
-			// Reinitialize any scripts/events.
-			this.afterLoad();
-			
-			this.hideLoader();
-			window.scrollTo( { top: 0, behavior: 'smooth' } );
-		}, 300 );
-	}
-
-	/**
-	 * Handle browser back/forward navigation.
-	 * @param {PopStateEvent} event - PopState event.
-	 */
-	handlePopState( event ) {
-		this.navigate( window.location.href );
-	}
-
-	/**
-	 * Actions to run after content loads.
-	 */
-	afterLoad() {
-		// Animate elements with fade-up class.
-		const elements = document.querySelectorAll( '.fade-up' );
-		elements.forEach( ( el, index ) => {
-			el.style.animationDelay = `${index * 0.1}s`;
-		} );
-		
-		// Reset progress bar.
-		this.progressBar.style.width = '0%';
-	}
-
-	/**
-	 * Update reading progress bar.
-	 */
-	updateProgressBar() {
-		const scrollTop = window.scrollY;
-		const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-		const progress = ( scrollTop / docHeight ) * 100;
-		
-		this.progressBar.style.width = `${progress}%`;
-	}
-
-	/**
-	 * Show loading indicator.
-	 */
-	showLoader() {
-		if ( speedxAjax.loadingText !== 'false' ) {
-			this.loader.classList.add( 'active' );
-		}
-	}
-
-	/**
-	 * Hide loading indicator.
-	 */
-	hideLoader() {
-		this.loader.classList.remove( 'active' );
-	}
+/**
+ * Initialize the router
+ */
+function init() {
+setupEventListeners();
+setupProgressObserver();
+setupMobileNav();
+console.log('SpeedX SPA Router initialized');
 }
 
-// Initialize router when DOM is ready.
-document.addEventListener( 'DOMContentLoaded', () => {
-	new SpeedXRouter();
-} );
+/**
+ * Setup global event listeners
+ */
+function setupEventListeners() {
+// Intercept all clicks on internal links
+document.addEventListener('click', handleGlobalClick, true);
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', handlePopState);
+
+// Scroll progress
+window.addEventListener('scroll', updateScrollProgress);
+}
+
+/**
+ * Handle global click events for SPA navigation
+ * @param {Event} e - Click event
+ */
+function handleGlobalClick(e) {
+const link = e.target.closest('a[href]');
+
+if (!link) return;
+
+const href = link.getAttribute('href');
+
+// Skip external links, mailto, tel, anchors, admin links
+if (
+href.startsWith('#') ||
+href.startsWith('mailto:') ||
+href.startsWith('tel:') ||
+href.includes('//') && !href.includes(window.location.hostname) ||
+href.includes('/wp-admin') ||
+href.includes('/wp-login.php')
+) {
+return;
+}
+
+// Check if user is using modifier keys
+if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+return;
+}
+
+e.preventDefault();
+navigateTo(href);
+}
+
+/**
+ * Navigate to a new URL via SPA
+ * @param {string} url - Target URL
+ */
+async function navigateTo(url) {
+if (isLoading) return;
+if (url === currentUrl) return;
+
+isLoading = true;
+showLoader();
+
+try {
+const data = await fetchFragment(url);
+
+if (!data.success) {
+throw new Error('Failed to load content');
+}
+
+// Update content
+updateContent(data.html);
+
+// Update title
+if (data.title) {
+document.title = data.title + ' | ' + document.querySelector('.site-title')?.textContent?.trim() || '';
+}
+
+// Update browser history
+history.pushState({ url: url }, '', url);
+currentUrl = url;
+
+// Scroll to top
+window.scrollTo({ top: 0, behavior: 'smooth' });
+
+// Reinitialize any dynamic components
+reinitComponents();
+
+} catch (error) {
+console.error('SPA Navigation error:', error);
+window.location.href = url; // Fallback to full page load
+} finally {
+isLoading = false;
+hideLoader();
+}
+}
+
+/**
+ * Fetch HTML fragment from API
+ * @param {string} url - URL to fetch
+ * @returns {Promise<Object>}
+ */
+async function fetchFragment(url) {
+const params = new URLSearchParams({ url: url });
+if (config.nonce) {
+params.append('_wpnonce', config.nonce);
+}
+
+const response = await fetch(`${config.apiEndpoint}?${params}`, {
+method: 'GET',
+headers: {
+'Accept': 'application/json',
+'X-Requested-With': 'XMLHttpRequest',
+},
+});
+
+if (!response.ok) {
+throw new Error(`HTTP error! status: ${response.status}`);
+}
+
+return await response.json();
+}
+
+/**
+ * Update the content container with new HTML
+ * @param {string} html - New HTML content
+ */
+function updateContent(html) {
+const container = document.querySelector(config.contentSelector);
+if (!container) return;
+
+// Fade out
+container.style.opacity = '0';
+container.style.transition = 'opacity 0.2s ease';
+
+setTimeout(() => {
+container.innerHTML = html;
+
+// Fade in
+container.style.opacity = '1';
+
+// Announce to screen readers
+const announcer = document.createElement('div');
+announcer.setAttribute('aria-live', 'polite');
+announcer.className = 'sr-only';
+announcer.textContent = 'Content updated';
+container.appendChild(announcer);
+
+setTimeout(() => announcer.remove(), 1000);
+}, 200);
+}
+
+/**
+ * Handle browser back/forward navigation
+ * @param {PopStateEvent} event
+ */
+async function handlePopState(event) {
+if (isLoading) return;
+
+const url = window.location.href;
+if (url === currentUrl) return;
+
+await navigateTo(url);
+}
+
+/**
+ * Show loading indicator
+ */
+function showLoader() {
+const loader = document.querySelector(config.loaderSelector);
+if (loader) {
+loader.style.display = 'flex';
+loader.style.opacity = '1';
+}
+}
+
+/**
+ * Hide loading indicator
+ */
+function hideLoader() {
+const loader = document.querySelector(config.loaderSelector);
+if (loader) {
+setTimeout(() => {
+loader.style.opacity = '0';
+setTimeout(() => {
+loader.style.display = 'none';
+}, 300);
+}, 300);
+}
+}
+
+/**
+ * Update reading progress bar based on scroll position
+ */
+function updateScrollProgress() {
+const progressBar = document.querySelector(config.progressSelector);
+if (!progressBar) return;
+
+const scrollTop = window.scrollY;
+const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+const scrollPercent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+
+progressBar.style.width = `${Math.min(scrollPercent, 100)}%`;
+}
+
+/**
+ * Setup intersection observer for scroll-reveal animations
+ */
+function setupProgressObserver() {
+if ('IntersectionObserver' in window) {
+const observer = new IntersectionObserver((entries) => {
+entries.forEach(entry => {
+if (entry.isIntersecting) {
+entry.target.classList.add('revealed');
+}
+});
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.post-card, .hero, .widget').forEach(el => {
+el.style.opacity = '0';
+el.style.transform = 'translateY(20px)';
+el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+observer.observe(el);
+});
+}
+}
+
+/**
+ * Setup mobile navigation toggle
+ */
+function setupMobileNav() {
+const hamburger = document.getElementById('hamburger-toggle');
+const drawer = document.getElementById('mobile-nav-drawer');
+
+if (!hamburger || !drawer) return;
+
+hamburger.addEventListener('click', () => {
+const isActive = drawer.classList.toggle('active');
+hamburger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+drawer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+});
+
+// Close drawer when clicking outside
+document.addEventListener('click', (e) => {
+if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
+drawer.classList.remove('active');
+hamburger.setAttribute('aria-expanded', 'false');
+drawer.setAttribute('aria-hidden', 'true');
+}
+});
+}
+
+/**
+ * Reinitialize dynamic components after content swap
+ */
+function reinitComponents() {
+// Reset scroll progress
+updateScrollProgress();
+
+// Re-setup any components that need it
+setupProgressObserver();
+
+// Fire custom event for other scripts to hook into
+window.dispatchEvent(new CustomEvent('speedx:content-loaded'));
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', init);
+} else {
+init();
+}
+})();
