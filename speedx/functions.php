@@ -2,6 +2,9 @@
 /**
  * SpeedX Theme Functions
  * Ultra-lightweight SPA theme with zero dependencies
+ * 
+ * @package SpeedX
+ * @since 1.0.0
  */
 
 if (!defined('ABSPATH')) {
@@ -12,6 +15,7 @@ if (!defined('ABSPATH')) {
 define('SPEEDX_VERSION', '1.0.0');
 define('SPEEDX_DIR', get_template_directory());
 define('SPEEDX_URI', get_template_directory_uri());
+define('SPEEDX_ASSETS_URI', SPEEDX_URI . '/assets');
 
 /**
  * Theme Setup
@@ -39,6 +43,8 @@ function speedx_setup() {
         'comment-list',
         'gallery',
         'caption',
+        'style',
+        'script',
     ));
 
     // Custom logo support
@@ -51,6 +57,15 @@ function speedx_setup() {
 
     // Custom background support
     add_theme_support('custom-background');
+
+    // Responsive embeds
+    add_theme_support('responsive-embeds');
+
+    // Align wide and full blocks
+    add_theme_support('align-wide');
+
+    // Editor styles
+    add_theme_support('editor-styles');
 }
 add_action('after_setup_theme', 'speedx_setup');
 
@@ -66,13 +81,12 @@ add_action('after_setup_theme', 'speedx_content_width', 0);
  * Enqueue scripts and styles
  */
 function speedx_scripts() {
-    // Critical CSS is inlined in header.php for above-the-fold
-    // Main stylesheet
+    // Main stylesheet - loaded in head for critical rendering path
     wp_enqueue_style('speedx-style', get_stylesheet_uri(), array(), SPEEDX_VERSION);
 
-    // SPA Router - vanilla JS, no dependencies
+    // SPA Router - vanilla JS, no dependencies, deferred to footer
     wp_enqueue_script('speedx-router', 
-        SPEEDX_URI . '/assets/js/router.js', 
+        SPEEDX_ASSETS_URI . '/js/router.js', 
         array(), 
         SPEEDX_VERSION, 
         true
@@ -80,11 +94,14 @@ function speedx_scripts() {
 
     // Localize script with config
     wp_localize_script('speedx-router', 'speedxConfig', array(
-        'ajaxUrl' => admin_url('admin-ajax.php'),
-        'restUrl' => esc_url_raw(rest_url()),
-        'nonce'   => wp_create_nonce('wp_rest'),
-        'homeUrl' => home_url('/'),
-        'siteName' => get_bloginfo('name'),
+        'ajaxUrl'      => admin_url('admin-ajax.php'),
+        'restUrl'      => esc_url_raw(rest_url()),
+        'nonce'        => wp_create_nonce('wp_rest'),
+        'homeUrl'      => home_url('/'),
+        'siteName'     => get_bloginfo('name'),
+        'spaEnabled'   => get_theme_mod('speedx_enable_spa', true),
+        'loadingType'  => get_theme_mod('speedx_loading_animation', 'bar'),
+        'transitionSpeed' => (float) get_theme_mod('speedx_transition_speed', 0.3),
     ));
 
     // Remove emoji scripts for performance
@@ -96,6 +113,10 @@ function speedx_scripts() {
     // Remove WordPress default scripts we don't need
     wp_deregister_script('jquery');
     wp_deregister_script('jquery-migrate');
+    
+    // Remove block library CSS if not using Gutenberg blocks heavily
+    wp_dequeue_style('wp-block-library');
+    wp_dequeue_style('wp-block-library-theme');
 }
 add_action('wp_enqueue_scripts', 'speedx_scripts');
 
@@ -104,8 +125,8 @@ add_action('wp_enqueue_scripts', 'speedx_scripts');
  */
 function speedx_inline_critical_css() {
     ?>
-    <style>
-        /* Critical above-the-fold CSS */
+    <style id="speedx-critical-css">
+        /* Critical above-the-fold CSS only */
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;line-height:1.6}
         .site-wrapper{min-height:100vh;display:flex;flex-direction:column}
         .site-header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;padding:1rem 0;z-index:100}
@@ -117,6 +138,20 @@ function speedx_inline_critical_css() {
     <?php
 }
 add_action('wp_head', 'speedx_inline_critical_css', 1);
+
+/**
+ * Add preload hints for performance
+ */
+function speedx_resource_hints($urls, $relation_type) {
+    if ('preconnect' === $relation_type || 'dns-prefetch' === $relation_type) {
+        $urls[] = array(
+            'href' => get_template_directory_uri(),
+            'crossorigin' => 'anonymous',
+        );
+    }
+    return $urls;
+}
+add_filter('wp_resource_hints', 'speedx_resource_hints', 10, 2);
 
 /**
  * Register widget areas
@@ -186,24 +221,28 @@ function speedx_preload_resources() {
 add_action('wp_head', 'speedx_preload_resources', 2);
 
 /**
- * Remove unnecessary WordPress head elements for performance
+ * Remove unnecessary WordPress head elements for performance and security
  */
 remove_action('wp_head', 'wp_generator');
 remove_action('wp_head', 'wlwmanifest_link');
 remove_action('wp_head', 'rsd_link');
 remove_action('wp_head', 'wp_shortlink_wp_head');
-remove_action('wp_head', 'rest_link', 10);
 
 /**
- * Custom template for SPA fragment requests
+ * Disable XML-RPC to prevent brute force attacks
+ */
+add_filter('xmlrpc_enabled', '__return_false');
+
+/**
+ * Custom template for SPA fragment requests via AJAX
  */
 function speedx_ajax_load_fragment() {
     if (!isset($_GET['template']) || !isset($_GET['path'])) {
-        wp_send_json_error('Missing parameters');
+        wp_send_json_error(array('message' => 'Missing parameters'), 400);
     }
 
     $template = sanitize_text_field($_GET['template']);
-    $path = sanitize_text_field($_GET['path']);
+    $path     = sanitize_text_field($_GET['path']);
     
     // Parse the path to set up WordPress query
     $path = str_replace(home_url('/'), '', $path);
@@ -228,10 +267,46 @@ function speedx_register_rest_routes() {
         'methods'             => 'GET',
         'callback'            => 'speedx_rest_fragment_callback',
         'permission_callback' => '__return_true',
+        'args'                => array(
+            'template' => array(
+                'required'          => true,
+                'type'              => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+                'validate_callback' => 'speedx_validate_template',
+            ),
+            'path'     => array(
+                'required'          => true,
+                'type'              => 'string',
+                'sanitize_callback' => 'esc_url_raw',
+            ),
+        ),
     ));
 }
 add_action('rest_api_init', 'speedx_register_rest_routes');
 
+/**
+ * Validate template name against allowed templates
+ */
+function speedx_validate_template($template, $request, $param) {
+    $allowed_templates = array(
+        'index',
+        'single',
+        'page',
+        'archive',
+        'category',
+        'tag',
+        'author',
+        'date',
+        'search',
+        '404',
+    );
+    
+    return in_array($template, $allowed_templates, true);
+}
+
+/**
+ * REST API callback for fragment loading
+ */
 function speedx_rest_fragment_callback($request) {
     $template = $request->get_param('template');
     $path     = $request->get_param('path');
@@ -308,16 +383,16 @@ function speedx_customize_register($wp_customize) {
         'section' => 'speedx_spa',
         'type'    => 'select',
         'choices' => array(
-            'bar'    => __('Progress Bar', 'speedx'),
+            'bar'     => __('Progress Bar', 'speedx'),
             'spinner' => __('Spinner', 'speedx'),
-            'none'   => __('None', 'speedx'),
+            'none'    => __('None', 'speedx'),
         ),
     ));
 
     // Transition Speed
     $wp_customize->add_setting('speedx_transition_speed', array(
         'default'           => '0.3',
-        'sanitize_callback' => 'sanitize_text_field',
+        'sanitize_callback' => 'speedx_sanitize_transition_speed',
     ));
 
     $wp_customize->add_control('speedx_transition_speed', array(
@@ -332,6 +407,14 @@ function speedx_customize_register($wp_customize) {
     ));
 }
 add_action('customize_register', 'speedx_customize_register');
+
+/**
+ * Sanitize transition speed value
+ */
+function speedx_sanitize_transition_speed($value) {
+    $float_val = (float) $value;
+    return max(0, min(2, $float_val));
+}
 
 /**
  * Output customizer CSS

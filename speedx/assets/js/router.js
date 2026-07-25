@@ -1,32 +1,83 @@
 /**
  * SpeedX SPA Router
  * Ultra-lightweight vanilla JavaScript router for partial page loads
- * Zero dependencies, ~150 lines
+ * Zero dependencies, modular architecture
+ * 
+ * @package SpeedX
+ * @version 1.0.0
  */
 
 (function() {
     'use strict';
 
-    // Configuration from WordPress
-    const config = window.speedxConfig || {};
-    const isEnabled = true; // Can be controlled via customizer
+    /**
+     * Module configuration
+     */
+    const Config = {
+        enabled: true,
+        ajaxUrl: '',
+        restUrl: '',
+        nonce: '',
+        homeUrl: '',
+        siteName: '',
+        loadingType: 'bar',
+        transitionSpeed: 0.3,
+    };
 
-    // State
-    let isLoading = false;
-    let currentUrl = window.location.href;
+    /**
+     * Module state
+     */
+    const State = {
+        isLoading: false,
+        currentUrl: window.location.href,
+    };
 
-    // DOM Elements
-    const contentContainer = document.getElementById('content-container');
-    const siteContent = document.getElementById('site-content');
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const siteHeader = document.getElementById('site-header');
-    const siteFooter = document.getElementById('site-footer');
+    /**
+     * DOM element cache
+     */
+    const DOM = {
+        contentContainer: null,
+        siteContent: null,
+        loadingIndicator: null,
+        siteHeader: null,
+        siteFooter: null,
+    };
+
+    /**
+     * Initialize configuration from WordPress
+     */
+    function initConfig() {
+        const config = window.speedxConfig || {};
+        
+        Config.enabled = config.spaEnabled !== undefined ? config.spaEnabled : true;
+        Config.ajaxUrl = config.ajaxUrl || '';
+        Config.restUrl = config.restUrl || '';
+        Config.nonce = config.nonce || '';
+        Config.homeUrl = config.homeUrl || '/';
+        Config.siteName = config.siteName || '';
+        Config.loadingType = config.loadingType || 'bar';
+        Config.transitionSpeed = parseFloat(config.transitionSpeed) || 0.3;
+    }
+
+    /**
+     * Cache DOM elements
+     */
+    function initDOM() {
+        DOM.contentContainer = document.getElementById('content-container');
+        DOM.siteContent = document.getElementById('site-content');
+        DOM.loadingIndicator = document.getElementById('loading-indicator');
+        DOM.siteHeader = document.getElementById('site-header');
+        DOM.siteFooter = document.getElementById('site-footer');
+    }
 
     /**
      * Initialize the SPA router
      */
     function init() {
-        if (!isEnabled || !contentContainer) {
+        initConfig();
+        initDOM();
+
+        if (!Config.enabled || !DOM.contentContainer) {
             return;
         }
 
@@ -39,7 +90,6 @@
         // Mark all internal links as SPA links
         markSpaLinks();
 
-        // Console log for debugging
         console.log('SpeedX SPA Router initialized');
     }
 
@@ -49,7 +99,7 @@
     function markSpaLinks() {
         const links = document.querySelectorAll('a[href]');
         
-        links.forEach(link => {
+        links.forEach(function(link) {
             const href = link.getAttribute('href');
             
             // Skip external links, anchors, and special URLs
@@ -69,6 +119,8 @@
 
     /**
      * Check if a link is external
+     * @param {string} url - URL to check
+     * @returns {boolean} True if external
      */
     function isExternalLink(url) {
         try {
@@ -81,16 +133,17 @@
 
     /**
      * Handle link clicks
+     * @param {Event} event - Click event
      */
     function handleLinkClick(event) {
         // Find closest anchor tag
-        const link = event.target.closest('a');
+        var link = event.target.closest('a');
         
-        if (!link || !isEnabled || isLoading) {
+        if (!link || !Config.enabled || State.isLoading) {
             return;
         }
 
-        const href = link.getAttribute('href');
+        var href = link.getAttribute('href');
 
         // Skip special links
         if (!href || 
@@ -114,13 +167,14 @@
 
     /**
      * Navigate to a new URL
+     * @param {string} url - Destination URL
      */
     async function navigateTo(url) {
-        if (isLoading || url === currentUrl) {
+        if (State.isLoading || url === State.currentUrl) {
             return;
         }
 
-        isLoading = true;
+        State.isLoading = true;
         showLoading();
 
         try {
@@ -128,7 +182,7 @@
             history.pushState({ url: url }, '', url);
 
             // Fetch the new content
-            const data = await fetchContent(url);
+            var data = await fetchContent(url);
 
             // Update the page
             updatePage(data);
@@ -136,62 +190,65 @@
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            currentUrl = url;
+            State.currentUrl = url;
         } catch (error) {
             console.error('Navigation failed:', error);
             // Fallback to full page reload on error
             window.location.href = url;
         } finally {
-            isLoading = false;
+            State.isLoading = false;
             hideLoading();
         }
     }
 
     /**
      * Handle browser back/forward
+     * @param {PopStateEvent} event - PopState event
      */
     async function handlePopState(event) {
-        if (!isEnabled || isLoading) {
+        if (!Config.enabled || State.isLoading) {
             return;
         }
 
-        const url = window.location.href;
+        var url = window.location.href;
 
-        if (url === currentUrl) {
+        if (url === State.currentUrl) {
             return;
         }
 
-        isLoading = true;
+        State.isLoading = true;
         showLoading();
 
         try {
-            const data = await fetchContent(url);
+            var data = await fetchContent(url);
             updatePage(data);
-            currentUrl = url;
+            State.currentUrl = url;
         } catch (error) {
             console.error('PopState navigation failed:', error);
             window.location.reload();
         } finally {
-            isLoading = false;
+            State.isLoading = false;
             hideLoading();
         }
     }
 
     /**
-     * Fetch content from server
+     * Fetch content from server via REST API
+     * @param {string} url - URL to fetch
+     * @returns {Promise<Object>} Response data
      */
     async function fetchContent(url) {
         // Determine template based on URL
-        const template = getTemplateForUrl(url);
+        var template = getTemplateForUrl(url);
 
         // Use REST API for fragment loading
-        const restUrl = config.restUrl + 'speedx/v1/fragment?template=' + encodeURIComponent(template) + '&path=' + encodeURIComponent(url);
+        var restUrl = Config.restUrl + 'speedx/v1/fragment?template=' + encodeURIComponent(template) + '&path=' + encodeURIComponent(url);
 
-        const response = await fetch(restUrl, {
+        var response = await fetch(restUrl, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'X-WP-Nonce': config.nonce || '',
+                'X-WP-Nonce': Config.nonce || '',
             },
         });
 
@@ -203,15 +260,20 @@
     }
 
     /**
-     * Determine which template to load based on URL
+     * Determine which template to load based on URL pattern
+     * @param {string} url - URL to analyze
+     * @returns {string} Template name
      */
     function getTemplateForUrl(url) {
-        // Simple URL pattern matching
-        // Can be extended for custom post types, archives, etc.
+        var path;
+        
+        try {
+            path = new URL(url, window.location.origin).pathname;
+        } catch (e) {
+            return 'index';
+        }
 
-        const path = new URL(url, window.location.origin).pathname;
-
-        // Single post/page
+        // Single post/page patterns
         if (path.match(/^\/\d{4}\/\d{2}\/\d{2}\/[^/]+\/$/) || 
             path.match(/^\/[^/]+\/[^/]+\/$/)) {
             return 'single';
@@ -219,33 +281,36 @@
 
         // Category archive
         if (path.match(/^\/category\//)) {
-            return 'category';
+            return 'archive';
         }
 
         // Tag archive
         if (path.match(/^\/tag\//)) {
-            return 'tag';
+            return 'archive';
         }
 
         // Author archive
         if (path.match(/^\/author\//)) {
-            return 'author';
+            return 'archive';
+        }
+
+        // Date archive
+        if (path.match(/^\/\d{4}(\/\d{2})?(\/\d{2})?\/$/)) {
+            return 'archive';
         }
 
         // Search results
-        if (path.match(/^\/search\//) || url.includes('s=')) {
+        if (path.match(/^\/search\//) || url.indexOf('s=') !== -1) {
             return 'search';
         }
-
-        // 404
-        // This would need server-side detection
 
         // Default to index (blog/home)
         return 'index';
     }
 
     /**
-     * Update page content
+     * Update page content with fade transition
+     * @param {Object} data - Response data with content and title
      */
     function updatePage(data) {
         if (!data || !data.content) {
@@ -253,25 +318,25 @@
         }
 
         // Fade out
-        if (siteContent) {
-            siteContent.classList.add('loading');
+        if (DOM.siteContent) {
+            DOM.siteContent.classList.add('loading');
         }
 
-        // Wait for transition
-        setTimeout(() => {
+        // Wait for half of transition time
+        setTimeout(function() {
             // Update content
-            if (contentContainer && data.content) {
-                contentContainer.innerHTML = data.content;
+            if (DOM.contentContainer && data.content) {
+                DOM.contentContainer.innerHTML = data.content;
             }
 
             // Update document title
             if (data.title) {
-                document.title = data.title + ' - ' + (config.siteName || '');
+                document.title = data.title + ' - ' + (Config.siteName || '');
             }
 
             // Fade in
-            if (siteContent) {
-                siteContent.classList.remove('loading');
+            if (DOM.siteContent) {
+                DOM.siteContent.classList.remove('loading');
             }
 
             // Re-mark SPA links in new content
@@ -279,17 +344,17 @@
 
             // Dispatch custom event for other scripts
             document.dispatchEvent(new CustomEvent('speedx:navigation-complete', {
-                detail: { url: currentUrl, data: data }
+                detail: { url: State.currentUrl, data: data }
             }));
-        }, 150); // Half of transition time
+        }, Config.transitionSpeed * 1000 / 2);
     }
 
     /**
      * Show loading indicator
      */
     function showLoading() {
-        if (loadingIndicator) {
-            loadingIndicator.classList.add('active');
+        if (DOM.loadingIndicator) {
+            DOM.loadingIndicator.classList.add('active');
         }
     }
 
@@ -297,8 +362,8 @@
      * Hide loading indicator
      */
     function hideLoading() {
-        if (loadingIndicator) {
-            loadingIndicator.classList.remove('active');
+        if (DOM.loadingIndicator) {
+            DOM.loadingIndicator.classList.remove('active');
         }
     }
 
@@ -307,8 +372,8 @@
      */
     window.SpeedXRouter = {
         navigate: navigateTo,
-        refresh: () => navigateTo(currentUrl),
-        isEnabled: () => isEnabled,
+        refresh: function() { return navigateTo(State.currentUrl); },
+        isEnabled: function() { return Config.enabled; },
     };
 
     // Initialize when DOM is ready
