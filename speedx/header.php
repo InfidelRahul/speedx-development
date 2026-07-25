@@ -50,12 +50,12 @@ echo esc_html( substr( get_bloginfo( 'name' ), 0, 2 ) );
 </span>
 </div>
 
-<!-- Desktop Navigation -->
-<nav class="main-navigation nav-menu-desktop" aria-label="<?php esc_attr_e( 'Primary Menu', 'speedx' ); ?>">
+<!-- Primary Navigation (Desktop + Mobile) -->
+<nav class="main-navigation" aria-label="<?php esc_attr_e( 'Primary Menu', 'speedx' ); ?>">
 <?php
 wp_nav_menu( [
 'theme_location' => 'primary',
-'menu_class'     => 'desktop-menu',
+'menu_class'     => 'primary-menu',
 'container'      => false,
 'depth'          => 1,
 ] );
@@ -81,17 +81,6 @@ wp_nav_menu( [
 <!-- Mobile Navigation Drawer (outside header for fixed positioning) -->
 <div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
 <div class="mobile-nav-inner">
-<nav aria-label="<?php esc_attr_e( 'Mobile Menu', 'speedx' ); ?>">
-<?php
-wp_nav_menu( [
-'theme_location' => 'primary',
-'menu_class'     => 'mobile-menu',
-'container'      => false,
-'depth'          => 1,
-] );
-?>
-</nav>
-
 <!-- Full-width search in mobile -->
 <div class="mobile-search">
 <?php get_search_form(); ?>
