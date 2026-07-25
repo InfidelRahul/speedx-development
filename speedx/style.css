@@ -221,6 +221,15 @@ p {
 	top: 20px;
 	z-index: 1000;
 	margin: 0 20px;
+	background: var(--sx-bg-base);
+	border-radius: var(--sx-radius-pill);
+	box-shadow: var(--sx-shadow-raised);
+	transition: transform var(--sx-transition-bounce), box-shadow var(--sx-transition-fast);
+}
+
+.site-header:hover {
+	transform: translateY(-2px);
+	box-shadow: 12px 12px 24px #C4C9D8, -12px -12px 24px #FFFFFF;
 }
 
 .header-inner {
