@@ -232,6 +232,7 @@ p {
 	position: relative;
 	gap: 1rem;
 	max-width: 100%;
+	overflow: hidden;
 }
 
 .site-branding {
@@ -262,6 +263,7 @@ p {
 	align-items: center;
 	flex: 1;
 	overflow: hidden;
+	min-width: 0;
 }
 
 .main-navigation .primary-menu,
@@ -277,6 +279,7 @@ p {
 	max-width: 100%;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
+	width: 100%;
 }
 
 .main-navigation .primary-menu::-webkit-scrollbar,
@@ -303,9 +306,9 @@ p {
 	transform: translateY(1px);
 }
 
-/* Header Actions (Search) */
+/* Header Actions (Search) - Hidden by default, shown via widget */
 .header-actions {
-	display: flex;
+	display: none;
 	align-items: center;
 	flex-shrink: 0;
 }
