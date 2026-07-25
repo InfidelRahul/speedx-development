@@ -221,6 +221,15 @@ p {
 	top: 20px;
 	z-index: 1000;
 	margin: 0 20px;
+	background: var(--sx-bg-base);
+	border-radius: var(--sx-radius-pill);
+	box-shadow: var(--sx-shadow-raised);
+	transition: transform var(--sx-transition-bounce), box-shadow var(--sx-transition-fast);
+}
+
+.site-header:hover {
+	transform: translateY(-2px);
+	box-shadow: 12px 12px 24px #C4C9D8, -12px -12px 24px #FFFFFF;
 }
 
 .header-inner {
@@ -922,6 +931,12 @@ align-items: center;
 
 /* Mobile Navigation Styles - Transform single menu */
 @media (max-width: 900px) {
+	/* Hide desktop nav links on mobile */
+	.main-navigation .primary-menu,
+	.main-navigation ul {
+		display: none;
+	}
+	
 	/* Show hamburger button on mobile */
 	.hamburger-btn {
 		display: flex;
@@ -930,7 +945,7 @@ align-items: center;
 	/* Transform navigation into mobile drawer */
 	.main-navigation {
 		position: fixed;
-		top: 70px;
+		top: 80px;
 		left: 20px;
 		right: 20px;
 		background: var(--sx-bg-base);
@@ -940,7 +955,7 @@ align-items: center;
 		gap: 1rem;
 		z-index: 999;
 		border-radius: var(--sx-radius-card);
-		max-height: calc(100vh - 90px);
+		max-height: calc(100vh - 100px);
 		overflow-y: auto;
 		display: none;
 	}
@@ -950,8 +965,9 @@ align-items: center;
 		animation: slideDown 0.3s ease forwards;
 	}
 	
-	.main-navigation .primary-menu,
-	.main-navigation ul {
+	.main-navigation.active .primary-menu,
+	.main-navigation.active ul {
+		display: flex;
 		flex-direction: column;
 		width: 100%;
 		order: 2;
