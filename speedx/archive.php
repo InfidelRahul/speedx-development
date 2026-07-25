@@ -1,104 +1,82 @@
 <?php
 /**
- * Archive template (categories, tags, dates, authors)
+ * Archive template for SpeedX theme
+ * 
+ * @package SpeedX
  */
 
-get_header();
+if (!defined('ABSPATH')) {
+    exit;
+}
 
+get_header();
 ?>
 
-<div class="content-area">
-    <!-- Archive Header -->
-    <header class="page-header" style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+<div class="content-wrapper fade-enter-active">
+    <header class="page-header neu-raised" style="padding: 2rem; margin-bottom: 2rem;">
         <?php
-        the_archive_title('<h1 class="page-title" style="font-size: 2rem; margin-bottom: 0.5rem;">', '</h1>');
-        the_archive_description('<div class="archive-description" style="color: #6b7280;">', '</div>');
+        the_archive_title('<h1 class="page-title" style="font-size: 2rem;">', '</h1>');
+        the_archive_description('<div class="archive-description" style="margin-top: 1rem; color: var(--text-muted);">', '</div>');
         ?>
     </header>
 
     <?php if (have_posts()) : ?>
-
-        <div class="article-list">
+        <div class="posts-list">
             <?php while (have_posts()) : the_post(); ?>
-
-                <article id="post-<?php the_ID(); ?>" <?php post_class('article-card'); ?>>
-                    
-                    <!-- Post Title -->
-                    <h2 class="entry-title">
-                        <a href="<?php the_permalink(); ?>" class="spa-link">
-                            <?php the_title(); ?>
-                        </a>
-                    </h2>
-
-                    <!-- Post Meta -->
-                    <?php if ('post' === get_post_type()) : ?>
-                        <div class="article-meta">
-                            <time datetime="<?php echo get_the_date('c'); ?>">
-                                <?php echo get_the_date(); ?>
-                            </time>
-                            <?php if (has_category()) : ?>
-                                <span style="margin-left: 0.5rem;">&middot;</span>
-                                <?php the_category(', '); ?>
-                            <?php endif; ?>
-                            <?php if (comments_open()) : ?>
-                                <span style="margin-left: 0.5rem;">&middot;</span>
-                                <a href="<?php comments_link(); ?>" class="spa-link">
-                                    <?php comments_number('0 Comments', '1 Comment', '% Comments'); ?>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Featured Image -->
+                <article id="post-<?php the_ID(); ?>" <?php post_class('article-card neu-raised'); ?>>
                     <?php if (has_post_thumbnail()) : ?>
-                        <div class="post-thumbnail" style="margin: 1rem 0;">
-                            <a href="<?php the_permalink(); ?>" class="spa-link">
-                                <?php the_post_thumbnail('medium', array(
-                                    'style' => 'max-width: 100%; height: auto; border-radius: 0.375rem;',
-                                )); ?>
+                        <div class="post-thumbnail" style="margin-bottom: 1.5rem;">
+                            <a href="<?php the_permalink(); ?>">
+                                <?php the_post_thumbnail('medium', array('loading' => 'lazy')); ?>
                             </a>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Post Excerpt -->
-                    <div class="entry-summary">
+                    <header class="entry-header">
+                        <h2 class="entry-title">
+                            <a href="<?php the_permalink(); ?>" rel="bookmark">
+                                <?php the_title(); ?>
+                            </a>
+                        </h2>
+                        
+                        <div class="meta">
+                            <span class="posted-on">
+                                <time datetime="<?php echo get_the_date('c'); ?>">
+                                    <?php echo get_the_date(); ?>
+                                </time>
+                            </span>
+                            <span class="byline">
+                                <?php esc_html_e('by', 'speedx'); ?> 
+                                <a href="<?php echo esc_url(get_author_posts_url(get_the_author_meta('ID'))); ?>">
+                                    <?php the_author(); ?>
+                                </a>
+                            </span>
+                        </div>
+                    </header>
+
+                    <div class="entry-summary" style="margin-top: 1rem; color: var(--text-muted);">
                         <?php the_excerpt(); ?>
                     </div>
 
-                    <!-- Read More Link -->
                     <footer class="entry-footer" style="margin-top: 1.5rem;">
-                        <a href="<?php the_permalink(); ?>" class="btn spa-link">
-                            <?php _e('Read More', 'speedx'); ?>
+                        <a href="<?php the_permalink(); ?>" class="btn-neu">
+                            <?php esc_html_e('Read More', 'speedx'); ?>
                         </a>
                     </footer>
-
                 </article>
-
             <?php endwhile; ?>
         </div>
 
-        <!-- Pagination -->
         <?php the_posts_pagination(array(
             'mid_size'  => 2,
-            'prev_text' => __('&larr; Previous', 'speedx'),
-            'next_text' => __('Next &rarr;', 'speedx'),
-            'class'     => 'pagination',
+            'prev_text' => __('Previous', 'speedx'),
+            'next_text' => __('Next', 'speedx'),
         )); ?>
 
     <?php else : ?>
-
-        <!-- No Posts Found -->
-        <section class="no-results not-found">
-            <header class="page-header">
-                <h1 class="page-title"><?php _e('Nothing Found', 'speedx'); ?></h1>
-            </header>
-
-            <div class="page-content">
-                <p><?php _e('It seems we can&rsquo;t find what you&rsquo;re looking for. Perhaps searching can help.', 'speedx'); ?></p>
-                <?php get_search_form(); ?>
-            </div>
+        <section class="no-results neu-raised" style="padding: 3rem; text-align: center;">
+            <p><?php esc_html_e('No posts found in this archive.', 'speedx'); ?></p>
         </section>
-
     <?php endif; ?>
 </div>
 

@@ -1,7 +1,8 @@
 /**
  * SpeedX SPA Router
- * Ultra-lightweight vanilla JavaScript router for partial page loads
- * Zero dependencies, modular architecture
+ * 
+ * Ultra-lightweight vanilla JavaScript router for partial page loads.
+ * Implements History API for seamless navigation without page refreshes.
  * 
  * @package SpeedX
  * @version 1.0.0
@@ -11,370 +12,270 @@
     'use strict';
 
     /**
-     * Module configuration
+     * Router configuration
      */
-    const Config = {
-        enabled: true,
-        ajaxUrl: '',
-        restUrl: '',
-        nonce: '',
-        homeUrl: '',
-        siteName: '',
-        loadingType: 'bar',
-        transitionSpeed: 0.3,
+    const CONFIG = {
+        contentSelector: '#content-container',
+        loaderSelector: '#spa-loader',
+        linkSelector: 'a[href^="' + window.location.origin + '"]:not([target="_blank"]):not([download]):not(.no-spa)',
+        formSelector: 'form[method="get"]',
+        transitionDuration: 300,
+        apiEndpoint: '/wp-json/speedx/v1/fragment',
     };
 
     /**
-     * Module state
+     * Router state management
      */
-    const State = {
+    const state = {
         isLoading: false,
         currentUrl: window.location.href,
+        historyIndex: 0,
     };
 
     /**
-     * DOM element cache
+     * DOM Elements cache
      */
-    const DOM = {
-        contentContainer: null,
-        siteContent: null,
-        loadingIndicator: null,
-        siteHeader: null,
-        siteFooter: null,
-    };
+    let elements = {};
 
     /**
-     * Initialize configuration from WordPress
-     */
-    function initConfig() {
-        const config = window.speedxConfig || {};
-        
-        Config.enabled = config.spaEnabled !== undefined ? config.spaEnabled : true;
-        Config.ajaxUrl = config.ajaxUrl || '';
-        Config.restUrl = config.restUrl || '';
-        Config.nonce = config.nonce || '';
-        Config.homeUrl = config.homeUrl || '/';
-        Config.siteName = config.siteName || '';
-        Config.loadingType = config.loadingType || 'bar';
-        Config.transitionSpeed = parseFloat(config.transitionSpeed) || 0.3;
-    }
-
-    /**
-     * Cache DOM elements
-     */
-    function initDOM() {
-        DOM.contentContainer = document.getElementById('content-container');
-        DOM.siteContent = document.getElementById('site-content');
-        DOM.loadingIndicator = document.getElementById('loading-indicator');
-        DOM.siteHeader = document.getElementById('site-header');
-        DOM.siteFooter = document.getElementById('site-footer');
-    }
-
-    /**
-     * Initialize the SPA router
+     * Initialize the router
      */
     function init() {
-        initConfig();
-        initDOM();
-
-        if (!Config.enabled || !DOM.contentContainer) {
-            return;
-        }
-
-        // Intercept all internal links
-        document.addEventListener('click', handleLinkClick, true);
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', handlePopState);
-
-        // Mark all internal links as SPA links
-        markSpaLinks();
-
-        console.log('SpeedX SPA Router initialized');
+        cacheElements();
+        bindEvents();
+        handleInitialLoad();
+        console.log('SpeedX Router initialized');
     }
 
     /**
-     * Mark all internal links with spa-link class
+     * Cache frequently accessed DOM elements
      */
-    function markSpaLinks() {
-        const links = document.querySelectorAll('a[href]');
+    function cacheElements() {
+        elements = {
+            content: document.querySelector(CONFIG.contentSelector),
+            loader: document.querySelector(CONFIG.loaderSelector),
+            title: document.title,
+        };
+    }
+
+    /**
+     * Bind event listeners
+     */
+    function bindEvents() {
+        // Delegate click events for links
+        document.addEventListener('click', handleClick, true);
         
-        links.forEach(function(link) {
-            const href = link.getAttribute('href');
-            
-            // Skip external links, anchors, and special URLs
-            if (isExternalLink(href) || 
-                href.startsWith('#') || 
-                href.startsWith('mailto:') || 
-                href.startsWith('tel:') ||
-                link.classList.contains('no-spa') ||
-                link.closest('.no-spa')) {
-                return;
-            }
-
-            // Add spa-link class for styling
-            link.classList.add('spa-link');
-        });
-    }
-
-    /**
-     * Check if a link is external
-     * @param {string} url - URL to check
-     * @returns {boolean} True if external
-     */
-    function isExternalLink(url) {
-        try {
-            const linkUrl = new URL(url, window.location.origin);
-            return linkUrl.origin !== window.location.origin;
-        } catch (e) {
-            return true;
-        }
+        // Handle browser back/forward
+        window.addEventListener('popstate', handlePopState);
+        
+        // Handle search forms
+        document.addEventListener('submit', handleFormSubmit, true);
     }
 
     /**
      * Handle link clicks
-     * @param {Event} event - Click event
+     * @param {Event} e - Click event
      */
-    function handleLinkClick(event) {
-        // Find closest anchor tag
-        var link = event.target.closest('a');
+    function handleClick(e) {
+        const link = e.target.closest(CONFIG.linkSelector);
         
-        if (!link || !Config.enabled || State.isLoading) {
+        if (!link || !link.href) {
             return;
         }
 
-        var href = link.getAttribute('href');
-
-        // Skip special links
-        if (!href || 
-            href.startsWith('#') || 
-            href.startsWith('mailto:') || 
-            href.startsWith('tel:') ||
-            link.classList.contains('no-spa') ||
-            link.closest('.no-spa') ||
-            link.getAttribute('target') === '_blank' ||
-            isExternalLink(href)) {
+        // Check if URL is internal and should use SPA
+        const url = new URL(link.href);
+        const isInternal = url.origin === window.location.origin;
+        const isSamePath = url.pathname === window.location.pathname;
+        
+        if (!isInternal || isSamePath) {
             return;
         }
 
-        // Prevent default navigation
-        event.preventDefault();
-        event.stopPropagation();
+        e.preventDefault();
+        navigateTo(link.href);
+    }
 
-        // Navigate to the new page
-        navigateTo(href);
+    /**
+     * Handle form submissions (search)
+     * @param {Event} e - Submit event
+     */
+    function handleFormSubmit(e) {
+        const form = e.target.closest(CONFIG.formSelector);
+        
+        if (!form) {
+            return;
+        }
+
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const queryString = new URLSearchParams(formData).toString();
+        const action = form.action || window.location.origin;
+        const url = action + '?' + queryString;
+        
+        navigateTo(url);
     }
 
     /**
      * Navigate to a new URL
-     * @param {string} url - Destination URL
+     * @param {string} url - Target URL
+     * @param {boolean} pushState - Whether to push to history
      */
-    async function navigateTo(url) {
-        if (State.isLoading || url === State.currentUrl) {
+    function navigateTo(url, pushState = true) {
+        if (state.isLoading || url === state.currentUrl) {
             return;
         }
 
-        State.isLoading = true;
-        showLoading();
+        state.isLoading = true;
+        showLoader();
 
-        try {
-            // Update browser history
+        // Update browser history
+        if (pushState) {
             history.pushState({ url: url }, '', url);
-
-            // Fetch the new content
-            var data = await fetchContent(url);
-
-            // Update the page
-            updatePage(data);
-
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            State.currentUrl = url;
-        } catch (error) {
-            console.error('Navigation failed:', error);
-            // Fallback to full page reload on error
-            window.location.href = url;
-        } finally {
-            State.isLoading = false;
-            hideLoading();
         }
+
+        // Fetch new content
+        fetchContent(url)
+            .then((data) => {
+                updatePage(data);
+                state.currentUrl = url;
+                scrollToTop();
+            })
+            .catch((error) => {
+                console.error('Navigation error:', error);
+                window.location.href = url; // Fallback to full page load
+            })
+            .finally(() => {
+                state.isLoading = false;
+                hideLoader();
+            });
     }
 
     /**
-     * Handle browser back/forward
-     * @param {PopStateEvent} event - PopState event
+     * Handle browser back/forward navigation
+     * @param {PopStateEvent} e - PopState event
      */
-    async function handlePopState(event) {
-        if (!Config.enabled || State.isLoading) {
-            return;
-        }
-
-        var url = window.location.href;
-
-        if (url === State.currentUrl) {
-            return;
-        }
-
-        State.isLoading = true;
-        showLoading();
-
-        try {
-            var data = await fetchContent(url);
-            updatePage(data);
-            State.currentUrl = url;
-        } catch (error) {
-            console.error('PopState navigation failed:', error);
-            window.location.reload();
-        } finally {
-            State.isLoading = false;
-            hideLoading();
+    function handlePopState(e) {
+        if (e.state && e.state.url) {
+            navigateTo(e.state.url, false);
         }
     }
 
     /**
-     * Fetch content from server via REST API
+     * Fetch content from server
      * @param {string} url - URL to fetch
-     * @returns {Promise<Object>} Response data
+     * @returns {Promise<Object>} - Response data
      */
-    async function fetchContent(url) {
-        // Determine template based on URL
-        var template = getTemplateForUrl(url);
-
-        // Use REST API for fragment loading
-        var restUrl = Config.restUrl + 'speedx/v1/fragment?template=' + encodeURIComponent(template) + '&path=' + encodeURIComponent(url);
-
-        var response = await fetch(restUrl, {
+    function fetchContent(url) {
+        const apiUrl = CONFIG.apiEndpoint + '?url=' + encodeURIComponent(url);
+        
+        return fetch(apiUrl, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'X-WP-Nonce': Config.nonce || '',
+                'X-Requested-With': 'XMLHttpRequest',
             },
+            credentials: 'same-origin',
+        })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
         });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch content: ' + response.status);
-        }
-
-        return await response.json();
     }
 
     /**
-     * Determine which template to load based on URL pattern
-     * @param {string} url - URL to analyze
-     * @returns {string} Template name
-     */
-    function getTemplateForUrl(url) {
-        var path;
-        
-        try {
-            path = new URL(url, window.location.origin).pathname;
-        } catch (e) {
-            return 'index';
-        }
-
-        // Single post/page patterns
-        if (path.match(/^\/\d{4}\/\d{2}\/\d{2}\/[^/]+\/$/) || 
-            path.match(/^\/[^/]+\/[^/]+\/$/)) {
-            return 'single';
-        }
-
-        // Category archive
-        if (path.match(/^\/category\//)) {
-            return 'archive';
-        }
-
-        // Tag archive
-        if (path.match(/^\/tag\//)) {
-            return 'archive';
-        }
-
-        // Author archive
-        if (path.match(/^\/author\//)) {
-            return 'archive';
-        }
-
-        // Date archive
-        if (path.match(/^\/\d{4}(\/\d{2})?(\/\d{2})?\/$/)) {
-            return 'archive';
-        }
-
-        // Search results
-        if (path.match(/^\/search\//) || url.indexOf('s=') !== -1) {
-            return 'search';
-        }
-
-        // Default to index (blog/home)
-        return 'index';
-    }
-
-    /**
-     * Update page content with fade transition
+     * Update page content
      * @param {Object} data - Response data with content and title
      */
     function updatePage(data) {
-        if (!data || !data.content) {
-            throw new Error('No content received');
+        if (!elements.content) {
+            return;
         }
 
         // Fade out
-        if (DOM.siteContent) {
-            DOM.siteContent.classList.add('loading');
-        }
+        elements.content.style.opacity = '0';
+        elements.content.style.transform = 'translateY(10px)';
 
-        // Wait for half of transition time
-        setTimeout(function() {
+        setTimeout(() => {
             // Update content
-            if (DOM.contentContainer && data.content) {
-                DOM.contentContainer.innerHTML = data.content;
+            elements.content.innerHTML = data.content || '';
+            
+            // Update title
+            if (data.title) {
+                document.title = data.title;
+                elements.title = data.title;
             }
 
-            // Update document title
-            if (data.title) {
-                document.title = data.title + ' - ' + (Config.siteName || '');
+            // Update meta description if available
+            if (data.meta_description) {
+                let metaDesc = document.querySelector('meta[name="description"]');
+                if (!metaDesc) {
+                    metaDesc = document.createElement('meta');
+                    metaDesc.name = 'description';
+                    document.head.appendChild(metaDesc);
+                }
+                metaDesc.content = data.meta_description;
             }
 
             // Fade in
-            if (DOM.siteContent) {
-                DOM.siteContent.classList.remove('loading');
-            }
+            elements.content.classList.add('fade-enter-active');
+            elements.content.style.opacity = '1';
+            elements.content.style.transform = 'translateY(0)';
 
-            // Re-mark SPA links in new content
-            markSpaLinks();
+            // Rebind events for new content
+            setTimeout(() => {
+                elements.content.classList.remove('fade-enter-active');
+            }, CONFIG.transitionDuration);
 
             // Dispatch custom event for other scripts
-            document.dispatchEvent(new CustomEvent('speedx:navigation-complete', {
-                detail: { url: State.currentUrl, data: data }
+            window.dispatchEvent(new CustomEvent('speedx:navigation-complete', { 
+                detail: { url: state.currentUrl } 
             }));
-        }, Config.transitionSpeed * 1000 / 2);
+        }, CONFIG.transitionDuration / 2);
     }
 
     /**
      * Show loading indicator
      */
-    function showLoading() {
-        if (DOM.loadingIndicator) {
-            DOM.loadingIndicator.classList.add('active');
+    function showLoader() {
+        if (elements.loader) {
+            elements.loader.classList.add('active');
         }
     }
 
     /**
      * Hide loading indicator
      */
-    function hideLoading() {
-        if (DOM.loadingIndicator) {
-            DOM.loadingIndicator.classList.remove('active');
+    function hideLoader() {
+        if (elements.loader) {
+            elements.loader.classList.remove('active');
         }
     }
 
     /**
-     * Public API for manual navigation
+     * Scroll to top of page
      */
-    window.SpeedXRouter = {
-        navigate: navigateTo,
-        refresh: function() { return navigateTo(State.currentUrl); },
-        isEnabled: function() { return Config.enabled; },
-    };
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+        });
+    }
+
+    /**
+     * Handle initial page load animations
+     */
+    function handleInitialLoad() {
+        document.addEventListener('DOMContentLoaded', () => {
+            const wrapper = document.querySelector('.content-wrapper');
+            if (wrapper) {
+                wrapper.classList.add('fade-enter-active');
+            }
+        });
+    }
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
@@ -382,4 +283,10 @@
     } else {
         init();
     }
+
+    // Expose navigate function globally for programmatic navigation
+    window.SpeedXRouter = {
+        navigate: navigateTo,
+    };
+
 })();
