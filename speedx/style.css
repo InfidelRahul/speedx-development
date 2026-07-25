@@ -833,7 +833,23 @@ p {
         display: none;
 }
 
-/* Mobile Nav */
+/* Desktop Navigation - Visible by default */
+.nav-menu-desktop {
+display: flex;
+align-items: center;
+}
+
+.nav-search-desktop {
+display: flex;
+align-items: center;
+}
+
+/* Hamburger button - Hidden on desktop */
+.hamburger-btn {
+display: none;
+}
+
+/* Mobile Navigation Styles */
 @media (max-width: 900px) {
 .nav-menu-desktop {
 display: none;
@@ -843,6 +859,11 @@ display: none;
 display: none;
 }
 
+.nav-search-desktop {
+display: none !important;
+}
+
+/* Show hamburger button on mobile */
 .hamburger-btn {
 display: flex;
 width: 44px;

@@ -76,9 +76,11 @@ wp_nav_menu( [
 </svg>
 </button>
 </div>
+</header>
 
-<!-- Mobile Navigation Drawer -->
+<!-- Mobile Navigation Drawer (outside header for fixed positioning) -->
 <div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
+<div class="mobile-nav-inner">
 <nav aria-label="<?php esc_attr_e( 'Mobile Menu', 'speedx' ); ?>">
 <?php
 wp_nav_menu( [
@@ -98,6 +100,5 @@ wp_nav_menu( [
 <!-- Mobile CTA if needed -->
 <a href="#subscribe" class="btn-neu primary"><?php esc_html_e( 'Subscribe', 'speedx' ); ?></a>
 </div>
-</header>
 
 <main class="site-content" id="content-container">
