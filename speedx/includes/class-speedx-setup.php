@@ -20,6 +20,7 @@ class SpeedX_Setup {
 	public static function register() {
 		add_action( 'after_setup_theme', [ __CLASS__, 'theme_setup' ] );
 		add_action( 'wp_enqueue_scripts', [ __CLASS__, 'register_fonts' ] );
+		add_action( 'widgets_init', [ __CLASS__, 'register_widgets' ] );
 	}
 
 	/**
@@ -57,6 +58,13 @@ class SpeedX_Setup {
 		add_theme_support( 'custom-background', [
 			'default-color' => 'E8ECF3',
 		] );
+	}
+
+	/**
+	 * Register theme widgets.
+	 */
+	public static function register_widgets() {
+		register_widget( 'SpeedX_Search_Widget' );
 	}
 
 	/**
