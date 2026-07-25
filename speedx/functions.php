@@ -1,20 +1,18 @@
 <?php
 /**
- * SpeedX Theme
+ * SpeedX Theme Bootstrap
  * 
- * A ultra-lightweight SPA WordPress theme with neumorphic design.
+ * Main entry point that loads all theme modules.
  * 
  * @package SpeedX
- * @version 1.0.0
- * @author SpeedX Team
- * @license GPL v2 or later
+ * @since 2.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-exit; // Exit if accessed directly.
+	exit;
 }
 
-define( 'SPEEDX_VERSION', '1.0.0' );
+define( 'SPEEDX_VERSION', '2.0.0' );
 define( 'SPEEDX_DIR', get_template_directory() );
 define( 'SPEEDX_URI', get_template_directory_uri() );
 
@@ -27,7 +25,12 @@ require_once SPEEDX_DIR . '/includes/class-speedx-customizer.php';
 require_once SPEEDX_DIR . '/includes/class-speedx-api.php';
 require_once SPEEDX_DIR . '/includes/class-speedx-security.php';
 
-/**
- * Load template helper functions.
- */
+// Load template helper functions.
 require_once SPEEDX_DIR . '/template-functions.php';
+
+// Initialize modules.
+SpeedX_Setup::register();
+SpeedX_Assets::register();
+SpeedX_Customizer::register();
+SpeedX_API::register();
+SpeedX_Security::register();

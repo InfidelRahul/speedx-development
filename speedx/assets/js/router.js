@@ -1,321 +1,207 @@
 /**
  * SpeedX SPA Router
  * 
- * Ultra-lightweight vanilla JavaScript router for partial page loads
- * Uses History API and Fetch for seamless navigation without page refreshes
+ * Handles client-side navigation with History API and fetch.
+ * Zero dependencies, vanilla JavaScript.
  * 
  * @package SpeedX
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-(function() {
-    'use strict';
+class SpeedXRouter {
+	constructor() {
+		this.contentContainer = document.getElementById( 'content-container' );
+		this.progressBar = document.getElementById( 'sx-progress-bar' );
+		this.loader = document.getElementById( 'sx-loader' );
+		this.isTransitioning = false;
+		
+		this.init();
+	}
 
-    /**
-     * Router Configuration
-     */
-    const config = {
-        contentSelector: '#content-container',
-        loaderSelector: '#page-loader',
-        linkSelector: 'a[href^="' + window.location.origin + '"]:not([data-no-spa]):not([target="_blank"]):not([download])',
-        formSelector: 'form[method="get"]',
-        transitionSpeed: 400,
-        showLoader: true,
-    };
+	init() {
+		// Intercept all internal links.
+		document.addEventListener( 'click', this.handleLinkClick.bind( this ) );
+		
+		// Handle browser back/forward.
+		window.addEventListener( 'popstate', this.handlePopState.bind( this ) );
+		
+		// Update progress bar on scroll.
+		window.addEventListener( 'scroll', this.updateProgressBar.bind( this ), { passive: true } );
+		
+		// Initial load complete.
+		this.hideLoader();
+	}
 
-    /**
-     * State management
-     */
-    let isLoading = false;
-    let currentUrl = window.location.href;
+	/**
+	 * Handle link clicks for SPA navigation.
+	 * @param {Event} event - Click event.
+	 */
+	handleLinkClick( event ) {
+		const link = event.target.closest( 'a[href]' );
+		
+		if ( ! link || ! this.shouldIntercept( link ) ) {
+			return;
+		}
+		
+		event.preventDefault();
+		
+		const url = link.href;
+		this.navigate( url );
+	}
 
-    /**
-     * Initialize the router
-     */
-    function init() {
-        // Get settings from WordPress if available
-        if (typeof speedxAjax !== 'undefined') {
-            config.showLoader = speedxAjax.showLoader !== false;
-            config.transitionSpeed = parseInt(speedxAjax.transitionSpeed) || 400;
-        }
+	/**
+	 * Determine if a link should be intercepted.
+	 * @param {HTMLAnchorElement} link - Link element.
+	 * @return {boolean} True if should intercept.
+	 */
+	shouldIntercept( link ) {
+		// Skip external links.
+		if ( link.hostname !== window.location.hostname ) {
+			return false;
+		}
+		
+		// Skip admin links.
+		if ( link.pathname.includes( '/wp-admin/' ) ) {
+			return false;
+		}
+		
+		// Skip hash-only links.
+		if ( link.hash && link.pathname === window.location.pathname ) {
+			return false;
+		}
+		
+		// Skip links with data-no-spa attribute.
+		if ( link.hasAttribute( 'data-no-spa' ) ) {
+			return false;
+		}
+		
+		return true;
+	}
 
-        // Attach event listeners
-        attachEventListeners();
+	/**
+	 * Navigate to a new URL.
+	 * @param {string} url - Target URL.
+	 */
+	async navigate( url ) {
+		if ( this.isTransitioning ) {
+			return;
+		}
+		
+		this.isTransitioning = true;
+		this.showLoader();
+		
+		try {
+			const response = await this.fetchContent( url );
+			const data = await response.json();
+			
+			if ( data.success ) {
+				this.updateContent( data.html, data.title, url );
+			} else {
+				throw new Error( 'Failed to load content' );
+			}
+		} catch ( error ) {
+			console.error( 'SpeedX Router Error:', error );
+			window.location.href = url; // Fallback to full page load.
+		} finally {
+			this.isTransitioning = false;
+		}
+	}
 
-        // Handle browser back/forward
-        window.addEventListener('popstate', handlePopState);
+	/**
+	 * Fetch content from REST API.
+	 * @param {string} url - URL to fetch.
+	 * @return {Promise<Response>} Fetch response.
+	 */
+	fetchContent( url ) {
+		return fetch( speedxAjax.restUrl + '?url=' + encodeURIComponent( url ), {
+			headers: {
+				'X-WP-Nonce': speedxAjax.restNonce,
+				'X-SpeedX-SPA': 'true',
+			},
+		} );
+	}
 
-        console.log('SpeedX Router initialized');
-    }
+	/**
+	 * Update page content.
+	 * @param {string} html - New HTML content.
+	 * @param {string} title - New page title.
+	 * @param {string} url - New URL.
+	 */
+	updateContent( html, title, url ) {
+		// Fade out.
+		this.contentContainer.style.opacity = '0';
+		this.contentContainer.style.transition = 'opacity 0.3s ease';
+		
+		setTimeout( () => {
+			// Update DOM.
+			this.contentContainer.innerHTML = html;
+			document.title = title;
+			
+			// Update browser history.
+			history.pushState( { path: url }, '', url );
+			
+			// Fade in.
+			this.contentContainer.style.opacity = '1';
+			
+			// Reinitialize any scripts/events.
+			this.afterLoad();
+			
+			this.hideLoader();
+			window.scrollTo( { top: 0, behavior: 'smooth' } );
+		}, 300 );
+	}
 
-    /**
-     * Attach all event listeners
-     */
-    function attachEventListeners() {
-        // Delegate link clicks
-        document.addEventListener('click', handleLinkClick, true);
+	/**
+	 * Handle browser back/forward navigation.
+	 * @param {PopStateEvent} event - PopState event.
+	 */
+	handlePopState( event ) {
+		this.navigate( window.location.href );
+	}
 
-        // Delegate form submissions (search forms)
-        document.addEventListener('submit', handleFormSubmit, true);
-    }
+	/**
+	 * Actions to run after content loads.
+	 */
+	afterLoad() {
+		// Animate elements with fade-up class.
+		const elements = document.querySelectorAll( '.fade-up' );
+		elements.forEach( ( el, index ) => {
+			el.style.animationDelay = `${index * 0.1}s`;
+		} );
+		
+		// Reset progress bar.
+		this.progressBar.style.width = '0%';
+	}
 
-    /**
-     * Handle link clicks for SPA navigation
-     * @param {Event} event - Click event
-     */
-    function handleLinkClick(event) {
-        // Find closest anchor tag
-        const link = event.target.closest('a');
-        
-        if (!link || !link.matches(config.linkSelector)) {
-            return;
-        }
+	/**
+	 * Update reading progress bar.
+	 */
+	updateProgressBar() {
+		const scrollTop = window.scrollY;
+		const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+		const progress = ( scrollTop / docHeight ) * 100;
+		
+		this.progressBar.style.width = `${progress}%`;
+	}
 
-        // Ignore special clicks
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-            return;
-        }
+	/**
+	 * Show loading indicator.
+	 */
+	showLoader() {
+		if ( speedxAjax.loadingText !== 'false' ) {
+			this.loader.classList.add( 'active' );
+		}
+	}
 
-        // Get href
-        const href = link.getAttribute('href');
-        
-        // Ignore hash-only links
-        if (href === '#' || href.startsWith('#')) {
-            return;
-        }
+	/**
+	 * Hide loading indicator.
+	 */
+	hideLoader() {
+		this.loader.classList.remove( 'active' );
+	}
+}
 
-        // Ignore same-page links
-        if (href === currentUrl) {
-            event.preventDefault();
-            return;
-        }
-
-        // Prevent default and navigate via SPA
-        event.preventDefault();
-        navigateTo(href);
-    }
-
-    /**
-     * Handle form submissions (search forms)
-     * @param {Event} event - Submit event
-     */
-    function handleFormSubmit(event) {
-        const form = event.target;
-        
-        if (!form.matches(config.formSelector)) {
-            return;
-        }
-
-        event.preventDefault();
-
-        // Build query string
-        const formData = new FormData(form);
-        const queryString = new URLSearchParams(formData).toString();
-        
-        // Navigate to search results
-        const action = form.getAttribute('action') || window.location.origin;
-        const url = action + (action.includes('?') ? '&' : '?') + queryString;
-        
-        navigateTo(url);
-    }
-
-    /**
-     * Navigate to a new URL via SPA
-     * @param {string} url - URL to navigate to
-     */
-    async function navigateTo(url) {
-        if (isLoading) {
-            return;
-        }
-
-        isLoading = true;
-        currentUrl = url;
-
-        // Show loader
-        if (config.showLoader) {
-            showLoader();
-        }
-
-        try {
-            // Fetch the new content
-            const path = url.replace(window.location.origin, '');
-            const response = await fetch(`${speedxAjax.restUrl}?path=${encodeURIComponent(path)}`, {
-                headers: {
-                    'X-WP-Nonce': speedxAjax.nonce,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Update browser history
-                history.pushState({ url: url }, '', url);
-
-                // Update content with fade transition
-                await updateContent(data.content, data.title);
-
-                // Scroll to top
-                window.scrollTo(0, 0);
-
-                // Re-initialize any dynamic content
-                reinitializeDynamicContent();
-            } else {
-                throw new Error('Failed to load content');
-            }
-        } catch (error) {
-            console.error('SPA Navigation error:', error);
-            // Fallback to full page load
-            window.location.href = url;
-        } finally {
-            isLoading = false;
-            hideLoader();
-        }
-    }
-
-    /**
-     * Handle browser back/forward buttons
-     * @param {PopStateEvent} event - PopState event
-     */
-    function handlePopState(event) {
-        if (isLoading) {
-            return;
-        }
-
-        const url = window.location.href;
-        
-        if (url === currentUrl) {
-            return;
-        }
-
-        currentUrl = url;
-        isLoading = true;
-
-        if (config.showLoader) {
-            showLoader();
-        }
-
-        // Fetch the content for the current URL
-        const path = url.replace(window.location.origin, '');
-        
-        fetch(`${speedxAjax.restUrl}?path=${encodeURIComponent(path)}`, {
-            headers: {
-                'X-WP-Nonce': speedxAjax.nonce,
-            },
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                updateContent(data.content, data.title);
-                reinitializeDynamicContent();
-            }
-        })
-        .catch(error => {
-            console.error('PopState navigation error:', error);
-            window.location.reload();
-        })
-        .finally(() => {
-            isLoading = false;
-            hideLoader();
-        });
-    }
-
-    /**
-     * Update page content with fade transition
-     * @param {string} content - New HTML content
-     * @param {string} title - New page title
-     */
-    function updateContent(content, title) {
-        return new Promise((resolve) => {
-            const container = document.querySelector(config.contentSelector);
-            
-            if (!container) {
-                resolve();
-                return;
-            }
-
-            // Fade out
-            container.style.opacity = '0';
-            container.style.transition = `opacity ${config.transitionSpeed}ms ease`;
-
-            setTimeout(() => {
-                // Update content
-                container.innerHTML = content;
-                
-                // Update title
-                if (title) {
-                    document.title = title;
-                }
-
-                // Fade in
-                container.style.opacity = '1';
-                
-                // Add fade-in animation class to new content
-                const wrapper = container.querySelector('.content-wrapper');
-                if (wrapper) {
-                    wrapper.classList.add('fade-in');
-                }
-
-                resolve();
-            }, config.transitionSpeed);
-        });
-    }
-
-    /**
-     * Show loading indicator
-     */
-    function showLoader() {
-        let loader = document.querySelector(config.loaderSelector);
-        
-        if (!loader) {
-            loader = document.createElement('div');
-            loader.id = 'page-loader';
-            loader.innerHTML = '<div class="loader-spinner"></div>';
-            document.body.appendChild(loader);
-        }
-
-        loader.classList.add('active');
-    }
-
-    /**
-     * Hide loading indicator
-     */
-    function hideLoader() {
-        const loader = document.querySelector(config.loaderSelector);
-        
-        if (loader) {
-            loader.classList.remove('active');
-        }
-    }
-
-    /**
-     * Reinitialize dynamic content after page load
-     * This is where you can reinitialize any JS plugins or features
-     */
-    function reinitializeDynamicContent() {
-        // Dispatch custom event for other scripts to hook into
-        const event = new CustomEvent('speedxContentLoaded', {
-            detail: { url: currentUrl }
-        });
-        document.dispatchEvent(event);
-
-        // Re-attach event listeners to new content
-        attachEventListeners();
-    }
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-})();
+// Initialize router when DOM is ready.
+document.addEventListener( 'DOMContentLoaded', () => {
+	new SpeedXRouter();
+} );

@@ -2,48 +2,42 @@
 /**
  * SpeedX Theme Setup
  * 
- * Registers core theme features like menus, thumbnails, and editor support.
+ * Handles core theme registration, menu setup, and feature support.
  * 
  * @package SpeedX
- * @since 1.0.0
+ * @since 2.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
+	exit;
 }
 
 class SpeedX_Setup {
 
 	/**
-	 * Class constructor.
+	 * Register theme supports and features.
 	 */
-	public function __construct() {
-		add_action( 'after_setup_theme', array( $this, 'theme_setup' ) );
+	public static function register() {
+		add_action( 'after_setup_theme', [ __CLASS__, 'theme_setup' ] );
+		add_action( 'wp_enqueue_scripts', [ __CLASS__, 'register_fonts' ] );
 	}
 
 	/**
-	 * Sets up theme defaults and registers support for various WordPress features.
+	 * Set up theme defaults and registers support for various WordPress features.
 	 */
-	public function theme_setup() {
-		// Add default posts and comments RSS feed links to head.
+	public static function theme_setup() {
 		add_theme_support( 'automatic-feed-links' );
-
-		// Let WordPress manage the document title.
 		add_theme_support( 'title-tag' );
-
-		// Enable support for Post Thumbnails on posts and pages.
 		add_theme_support( 'post-thumbnails' );
 		set_post_thumbnail_size( 1200, 675, true );
 
-		// Register navigation menus.
-		register_nav_menus( array(
-			'primary' => esc_html__( 'Primary Menu', 'speedx' ),
-			'footer'  => esc_html__( 'Footer Menu', 'speedx' ),
-		) );
+		register_nav_menus( [
+			'primary'   => esc_html__( 'Primary Menu', 'speedx' ),
+			'footer'    => esc_html__( 'Footer Menu', 'speedx' ),
+			'social'    => esc_html__( 'Social Links Menu', 'speedx' ),
+		] );
 
-		// Switch default core markup for search form, comment form, and comments
-		// to output valid HTML5.
-		add_theme_support( 'html5', array(
+		add_theme_support( 'html5', [
 			'search-form',
 			'comment-form',
 			'comment-list',
@@ -51,25 +45,32 @@ class SpeedX_Setup {
 			'caption',
 			'style',
 			'script',
-		) );
+		] );
 
-		// Add theme support for selective refresh for widgets.
 		add_theme_support( 'customize-selective-refresh-widgets' );
-
-		// Add support for core custom logo.
-		add_theme_support( 'custom-logo', array(
-			'height'      => 250,
-			'width'       => 250,
+		add_theme_support( 'custom-logo', [
+			'height'      => 80,
+			'width'       => 80,
 			'flex-width'  => true,
 			'flex-height' => true,
-		) );
+		] );
+		add_theme_support( 'custom-background', [
+			'default-color' => 'E8ECF3',
+		] );
+	}
 
-		// Add support for responsive embedded content.
-		add_theme_support( 'responsive-embeds' );
-
-		// Remove core block patterns.
-		remove_theme_support( 'core-block-patterns' );
+	/**
+	 * Register Google Fonts (Space Grotesk & Manrope).
+	 */
+	public static function register_fonts() {
+		wp_register_style(
+			'speedx-google-fonts',
+			'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap',
+			[],
+			null
+		);
+		wp_enqueue_style( 'speedx-google-fonts' );
 	}
 }
 
-return new SpeedX_Setup();
+SpeedX_Setup::register();

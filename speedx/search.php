@@ -1,67 +1,63 @@
 <?php
 /**
- * Template for displaying search results
- *
+ * SpeedX Search Results Template
+ * 
+ * Displays search results.
+ * 
  * @package SpeedX
  */
 
-get_header(); ?>
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
-<div class="content-wrapper fade-in">
-    <header class="page-header">
-        <h1 class="page-title">
-            <?php printf('Search Results for: %s', '<span>' . get_search_query() . '</span>'); ?>
-        </h1>
-    </header>
+get_header();
+?>
 
-    <?php if (have_posts()) : ?>
-        <div class="posts-grid">
-            <?php while (have_posts()) : the_post(); ?>
-                <article id="post-<?php the_ID(); ?>" <?php post_class('article-card'); ?>>
-                    <?php if (has_post_thumbnail()) : ?>
-                        <div class="post-thumbnail">
-                            <a href="<?php the_permalink(); ?>">
-                                <?php the_post_thumbnail('medium'); ?>
-                            </a>
-                        </div>
-                    <?php endif; ?>
+<main class="main-content">
+	<header class="search-header" style="margin-bottom: 2rem;">
+		<span class="eyebrow-pill sx-surface-pressed"><?php esc_html_e( 'Search Results', 'speedx' ); ?></span>
+		<h1><?php printf( esc_html__( 'Search for: %s', 'speedx' ), '<span style="color: var(--sx-accent);">' . get_search_query() . '</span>' ); ?></h1>
+	</header>
 
-                    <header class="entry-header">
-                        <h2 class="entry-title">
-                            <a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
-                        </h2>
-                        <div class="entry-meta">
-                            <span class="posted-on"><?php echo get_the_date(); ?></span>
-                            <span class="byline"> <?php echo get_the_author(); ?></span>
-                        </div>
-                    </header>
+	<div class="post-grid">
+		<?php
+		if ( have_posts() ) :
+			while ( have_posts() ) : the_post();
+		?>
+			<article class="post-card sx-surface-raised fade-up">
+				<div class="post-image-well">
+					<a href="<?php the_permalink(); ?>">
+						<?php if ( has_post_thumbnail() ) : ?>
+							<?php the_post_thumbnail( 'medium' ); ?>
+						<?php else : ?>
+							<div style="height: 220px; background: var(--sx-bg-base);"></div>
+						<?php endif; ?>
+					</a>
+				</div>
+				
+				<div class="post-content">
+					<h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+					<p><?php echo wp_trim_words( get_the_excerpt(), 25 ); ?></p>
+					
+					<div class="post-meta-row meta-text">
+						<time datetime="<?php echo get_the_date( 'c' ); ?>"><?php echo get_the_date( 'M j, Y' ); ?></time>
+					</div>
+				</div>
+			</article>
+		<?php
+			endwhile;
+		else :
+		?>
+			<div class="sx-surface-raised" style="padding: 3rem; text-align: center;">
+				<h3><?php esc_html_e( 'Nothing Found', 'speedx' ); ?></h3>
+				<p><?php esc_html_e( 'Sorry, but nothing matched your search terms. Please try again with different keywords.', 'speedx' ); ?></p>
+				<?php get_search_form(); ?>
+			</div>
+		<?php endif; ?>
+	</div>
+</main>
 
-                    <div class="entry-summary">
-                        <?php the_excerpt(); ?>
-                    </div>
+<?php get_sidebar(); ?>
 
-                    <footer class="entry-footer">
-                        <a href="<?php the_permalink(); ?>" class="btn-neu">Read More</a>
-                    </footer>
-                </article>
-            <?php endwhile; ?>
-        </div>
-
-        <?php
-        the_posts_pagination(array(
-            'mid_size'  => 2,
-            'prev_text' => '&larr;',
-            'next_text' => '&rarr;',
-        ));
-        ?>
-
-    <?php else : ?>
-        <div class="no-posts">
-            <h2>No results found</h2>
-            <p>Sorry, but nothing matched your search terms. Please try again with different keywords.</p>
-            <?php get_search_form(); ?>
-        </div>
-    <?php endif; ?>
-</div>
-
-<?php get_footer();
+<?php get_footer(); ?>

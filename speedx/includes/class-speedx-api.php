@@ -2,172 +2,136 @@
 /**
  * SpeedX REST API
  * 
- * Registers custom REST API endpoints for SPA fragment loading.
- * Validates templates and returns sanitized HTML.
+ * Handles custom REST API endpoints for SPA fragment loading.
  * 
  * @package SpeedX
- * @since 1.0.0
+ * @since 2.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
+	exit;
 }
 
 class SpeedX_API {
 
 	/**
-	 * Allowed templates for fragment loading.
+	 * Register API hooks.
 	 */
-	private $allowed_templates = array(
-		'index',
-		'single',
-		'page',
-		'archive',
-		'search',
-		'404',
-	);
-
-	/**
-	 * Class constructor.
-	 */
-	public function __construct() {
-		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+	public static function register() {
+		add_action( 'rest_api_init', [ __CLASS__, 'register_routes' ] );
 	}
 
 	/**
 	 * Register REST API routes.
 	 */
-	public function register_routes() {
-		register_rest_route( 'speedx/v1', '/fragment', array(
+	public static function register_routes() {
+		register_rest_route( 'speedx/v1', '/fragment', [
 			'methods'             => 'GET',
-			'callback'            => array( $this, 'get_fragment' ),
-			'permission_callback' => '__return_true',
-			'args'                => array(
-				'url' => array(
+			'callback'            => [ __CLASS__, 'get_fragment' ],
+			'permission_callback' => [ __CLASS__, 'verify_nonce' ],
+			'args'                => [
+				'url' => [
 					'required'          => true,
-					'validate_callback' => array( $this, 'validate_url' ),
 					'sanitize_callback' => 'esc_url_raw',
-				),
-				'template' => array(
+					'validate_callback' => [ __CLASS__, 'validate_url' ],
+				],
+				'template' => [
 					'required'          => false,
-					'default'           => 'index',
-					'validate_callback' => array( $this, 'validate_template' ),
 					'sanitize_callback' => 'sanitize_text_field',
-				),
-			),
-		) );
+					'validate_callback' => [ __CLASS__, 'validate_template' ],
+				],
+			],
+		] );
 	}
 
 	/**
 	 * Get HTML fragment for a given URL.
-	 *
-	 * @param WP_REST_Request $request Full data about the request.
-	 * @return WP_REST_Response|WP_Error
+	 * 
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response object.
 	 */
-	public function get_fragment( $request ) {
+	public static function get_fragment( $request ) {
 		$url      = $request->get_param( 'url' );
-		$template = $request->get_param( 'template' );
+		$template = $request->get_param( 'template' ) ?? 'index';
 
-		// Parse URL to get query vars.
-		$parsed_url = parse_url( $url );
-		$path       = isset( $parsed_url['path'] ) ? $parsed_url['path'] : '/';
-		
-		// Simulate WordPress query based on path.
-		$this->simulate_query( $path );
+		// Parse URL to get path.
+		$parsed = wp_parse_url( $url );
+		$path   = isset( $parsed['path'] ) ? $parsed['path'] : '/';
 
-		// Start output buffering.
+		// Query WordPress for the content.
+		query_posts( "pagename={$path}" );
+
+		if ( ! have_posts() ) {
+			return new WP_REST_Response( [
+				'success' => false,
+				'error'   => 'Content not found',
+			], 404 );
+		}
+
+		// Start output buffering to capture template output.
 		ob_start();
 
 		// Load appropriate template part.
-		if ( is_404() ) {
-			get_template_part( '404' );
-		} elseif ( is_search() ) {
-			get_template_part( 'search' );
-		} elseif ( is_single() ) {
+		if ( is_single() ) {
+			get_header();
 			get_template_part( 'single' );
+			get_footer();
 		} elseif ( is_page() ) {
+			get_header();
 			get_template_part( 'page' );
-		} elseif ( is_archive() ) {
-			get_template_part( 'archive' );
+			get_footer();
 		} else {
+			get_header();
 			get_template_part( 'index' );
+			get_footer();
 		}
 
-		$content = ob_get_clean();
+		$html = ob_get_clean();
 
-		return rest_ensure_response( array(
+		// Extract only the content container.
+		preg_match( '/<div id="content-container"(.*?)>(.*)<\/div>\s*<!-- #content-container -->/s', $html, $matches );
+
+		$content = $matches[0] ?? $html;
+
+		return new WP_REST_Response( [
 			'success' => true,
-			'content' => $content,
+			'html'    => $content,
 			'title'   => wp_get_document_title(),
-		) );
+		], 200 );
 	}
 
 	/**
-	 * Simulate WordPress query based on URL path.
-	 *
-	 * @param string $path URL path.
+	 * Verify REST API nonce.
+	 * 
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool Whether nonce is valid.
 	 */
-	private function simulate_query( $path ) {
-		global $wp_query;
-
-		// Reset query.
-		wp_reset_query();
-
-		// Basic path matching logic.
-		if ( strpos( $path, '/search/' ) !== false || isset( $_GET['s'] ) ) {
-			$wp_query->is_search = true;
-		} elseif ( preg_match( '#/\d{4}/\d{2}/#', $path ) ) {
-			$wp_query->is_date = true;
-		} elseif ( strpos( $path, '/category/' ) !== false ) {
-			$wp_query->is_category = true;
-		} elseif ( strpos( $path, '/tag/' ) !== false ) {
-			$wp_query->is_tag = true;
-		} elseif ( preg_match( '#^/[^/]+/?$#', $path ) && ! is_numeric( basename( $path ) ) ) {
-			// Check if page exists.
-			$page = get_page_by_path( trim( $path, '/' ) );
-			if ( $page ) {
-				$wp_query->is_page = true;
-				$wp_query->queried_object = $page;
-			} else {
-				$wp_query->is_404 = true;
-			}
-		} else {
-			// Default to posts index or single.
-			if ( is_numeric( basename( $path ) ) ) {
-				$post_id = absint( basename( $path ) );
-				$post = get_post( $post_id );
-				if ( $post ) {
-					$wp_query->is_single = true;
-					$wp_query->queried_object = $post;
-				} else {
-					$wp_query->is_404 = true;
-				}
-			} else {
-				$wp_query->is_home = true;
-			}
-		}
+	public static function verify_nonce( $request ) {
+		$nonce = $request->get_header( 'X-WP-Nonce' );
+		return wp_verify_nonce( $nonce, 'wp_rest' );
 	}
 
 	/**
 	 * Validate URL is internal.
-	 *
+	 * 
 	 * @param string $url URL to validate.
-	 * @return bool
+	 * @return bool Whether URL is valid.
 	 */
-	public function validate_url( $url ) {
+	public static function validate_url( $url ) {
 		$home_url = home_url( '/' );
 		return strpos( $url, $home_url ) === 0;
 	}
 
 	/**
-	 * Validate template is allowed.
-	 *
+	 * Validate template name against whitelist.
+	 * 
 	 * @param string $template Template name.
-	 * @return bool
+	 * @return bool Whether template is valid.
 	 */
-	public function validate_template( $template ) {
-		return in_array( $template, $this->allowed_templates, true );
+	public static function validate_template( $template ) {
+		$allowed = [ 'index', 'single', 'page', 'archive', 'search', '404' ];
+		return in_array( $template, $allowed, true );
 	}
 }
 
-return new SpeedX_API();
+SpeedX_API::register();
