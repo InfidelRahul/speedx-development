@@ -262,8 +262,15 @@ p {
 	display: flex;
 	align-items: center;
 	flex: 1;
-	overflow: hidden;
+	overflow-x: auto;
+	overflow-y: hidden;
 	min-width: 0;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.main-navigation::-webkit-scrollbar {
+	display: none;
 }
 
 .main-navigation .primary-menu,
@@ -275,16 +282,8 @@ p {
 	padding: 0;
 	align-items: center;
 	flex-wrap: nowrap;
-	overflow-x: auto;
+	width: max-content;
 	max-width: 100%;
-	scrollbar-width: none;
-	-ms-overflow-style: none;
-	width: 100%;
-}
-
-.main-navigation .primary-menu::-webkit-scrollbar,
-.main-navigation ul::-webkit-scrollbar {
-	display: none;
 }
 
 .main-navigation a {
@@ -356,11 +355,14 @@ p {
 	display: grid;
 	grid-template-columns: 1fr 340px;
 	gap: 40px;
+	min-height: 50vh;
 }
 
 @media (max-width: 900px) {
 	.site-content {
 		grid-template-columns: 1fr;
+		padding: 20px;
+		min-height: 60vh;
 	}
 	.sidebar {
 		order: 2;
