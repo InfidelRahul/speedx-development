@@ -4,9 +4,12 @@
 __pycache__/
 *.o
 *.obj
-dist/
-build/
-target/
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
 # Dependencies
 node_modules/
@@ -16,10 +19,25 @@ venv/
 .env.local
 .env.*
 
+# Build directories
+dist/
+build/
+target/
+
+# Python specific
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage/
+htmlcov/
+
 # Logs and temp files
 *.log
 *.tmp
 *.swp
+*.swo
 
 # Editors
 .vscode/
@@ -28,17 +46,6 @@ venv/
 # System files
 .DS_Store
 Thumbs.db
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Python specific
-*.pyc
-__pycache__/
-.pytest_cache/
-.mypy_cache/
 
 # Compressed files
 *.zip
