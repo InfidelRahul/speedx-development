@@ -58,7 +58,6 @@ wp_nav_menu( [
 'menu_class'     => 'desktop-menu',
 'container'      => false,
 'depth'          => 1,
-'fallback_cb'    => '__return_false',
 ] );
 ?>
 </nav>
@@ -87,7 +86,6 @@ wp_nav_menu( [
 'menu_class'     => 'mobile-menu',
 'container'      => false,
 'depth'          => 1,
-'fallback_cb'    => '__return_false',
 ] );
 ?>
 </nav>
@@ -98,7 +96,7 @@ wp_nav_menu( [
 </div>
 
 <!-- Mobile CTA if needed -->
-<a href="#" class="btn-neu primary" style="text-align: center;"><?php esc_html_e( 'Subscribe', 'speedx' ); ?></a>
+<a href="#subscribe" class="btn-neu primary"><?php esc_html_e( 'Subscribe', 'speedx' ); ?></a>
 </div>
 </header>
 
