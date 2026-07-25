@@ -13,8 +13,8 @@ const config = {
 contentSelector: '#content-container',
 loaderSelector: '#sx-loader',
 progressSelector: '#sx-progress-bar',
-apiEndpoint: window.speedxConfig ? window.speedxConfig.apiUrl : '/wp-json/speedx/v1/fragment',
-nonce: window.speedxConfig ? window.speedxConfig.nonce : '',
+apiEndpoint: window.speedxAjax ? window.speedxAjax.restUrl : '/wp-json/speedx/v1/fragment',
+nonce: window.speedxAjax ? window.speedxAjax.restNonce : '',
 };
 
 // State
@@ -261,7 +261,9 @@ const drawer = document.getElementById('mobile-nav-drawer');
 
 if (!hamburger || !drawer) return;
 
-hamburger.addEventListener('click', () => {
+// Toggle menu on hamburger click
+hamburger.addEventListener('click', (e) => {
+e.stopPropagation();
 const isActive = drawer.classList.toggle('active');
 hamburger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
 drawer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
@@ -270,6 +272,16 @@ drawer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
 // Close drawer when clicking outside
 document.addEventListener('click', (e) => {
 if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
+drawer.classList.remove('active');
+hamburger.setAttribute('aria-expanded', 'false');
+drawer.setAttribute('aria-hidden', 'true');
+}
+});
+
+// Close drawer when clicking a menu link
+drawer.addEventListener('click', (e) => {
+const link = e.target.closest('a[href]');
+if (link) {
 drawer.classList.remove('active');
 hamburger.setAttribute('aria-expanded', 'false');
 drawer.setAttribute('aria-hidden', 'true');
