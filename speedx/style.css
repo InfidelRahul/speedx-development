@@ -251,10 +251,13 @@ p {
 	font-size: 1.2rem;
 }
 
+.main-navigation .desktop-menu,
 .main-navigation ul {
 	display: flex;
 	list-style: none;
 	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
 }
 
 .main-navigation a {
@@ -264,6 +267,7 @@ p {
 	color: var(--sx-ink-secondary);
 	font-weight: 500;
 	transition: all var(--sx-transition-fast);
+	text-decoration: none;
 }
 
 .main-navigation a:hover,
@@ -853,6 +857,29 @@ p {
                 font-size: 1.1rem;
                 color: var(--sx-ink-primary);
                 text-decoration: none;
+        }
+        
+        .mobile-nav-drawer .mobile-menu {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+        }
+        
+        .mobile-nav-drawer .mobile-menu li {
+                margin-bottom: 0.5rem;
+        }
+        
+        .mobile-nav-drawer .mobile-menu a {
+                display: block;
+                padding: 0.75rem 1rem;
+                border-radius: var(--sx-radius-btn);
+                transition: all var(--sx-transition-fast);
+        }
+        
+        .mobile-nav-drawer .mobile-menu a:hover {
+                background: var(--sx-bg-base);
+                box-shadow: var(--sx-shadow-pressed);
+                color: var(--sx-accent);
         }
         
         .mobile-nav-drawer .input-neu {

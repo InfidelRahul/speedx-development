@@ -55,9 +55,10 @@ echo esc_html( substr( get_bloginfo( 'name' ), 0, 2 ) );
 <?php
 wp_nav_menu( [
 'theme_location' => 'primary',
-'menu_class'     => '',
+'menu_class'     => 'desktop-menu',
 'container'      => false,
 'depth'          => 1,
+'fallback_cb'    => '__return_false',
 ] );
 ?>
 </nav>
@@ -86,6 +87,7 @@ wp_nav_menu( [
 'menu_class'     => 'mobile-menu',
 'container'      => false,
 'depth'          => 1,
+'fallback_cb'    => '__return_false',
 ] );
 ?>
 </nav>
