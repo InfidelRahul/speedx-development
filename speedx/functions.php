@@ -24,6 +24,7 @@ require_once SPEEDX_DIR . '/includes/class-speedx-assets.php';
 require_once SPEEDX_DIR . '/includes/class-speedx-customizer.php';
 require_once SPEEDX_DIR . '/includes/class-speedx-api.php';
 require_once SPEEDX_DIR . '/includes/class-speedx-security.php';
+require_once SPEEDX_DIR . '/includes/class-speedx-search-widget.php';
 
 // Load template helper functions.
 require_once SPEEDX_DIR . '/template-functions.php';

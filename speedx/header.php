@@ -50,7 +50,7 @@ echo esc_html( substr( get_bloginfo( 'name' ), 0, 2 ) );
 </span>
 </div>
 
-<!-- Primary Navigation (Desktop + Mobile) -->
+<!-- Primary Navigation (Desktop) -->
 <nav class="main-navigation" aria-label="<?php esc_attr_e( 'Primary Menu', 'speedx' ); ?>">
 <?php
 wp_nav_menu( [
@@ -61,11 +61,6 @@ wp_nav_menu( [
 ] );
 ?>
 </nav>
-
-<!-- Desktop Search -->
-<div class="header-actions nav-search nav-search-desktop">
-<?php get_search_form(); ?>
-</div>
 
 <!-- Mobile Hamburger Button -->
 <button class="hamburger-btn" id="hamburger-toggle" aria-label="<?php esc_attr_e( 'Toggle Menu', 'speedx' ); ?>" aria-expanded="false">
@@ -81,13 +76,15 @@ wp_nav_menu( [
 <!-- Mobile Navigation Drawer (outside header for fixed positioning) -->
 <div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
 <div class="mobile-nav-inner">
-<!-- Full-width search in mobile -->
-<div class="mobile-search">
-<?php get_search_form(); ?>
-</div>
-
-<!-- Mobile CTA if needed -->
-<a href="#subscribe" class="btn-neu primary"><?php esc_html_e( 'Subscribe', 'speedx' ); ?></a>
+<!-- Mobile menu will be populated by JS or use same menu location -->
+<?php
+wp_nav_menu( [
+'theme_location' => 'primary',
+'menu_class'     => 'mobile-primary-menu',
+'container'      => false,
+'depth'          => 1,
+] );
+?>
 </div>
 
 <main class="site-content" id="content-container">
