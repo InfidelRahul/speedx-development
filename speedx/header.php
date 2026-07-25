@@ -70,6 +70,5 @@ wp_nav_menu( [
 ?>
 </nav>
 </div>
-</header>
 
 <main class="site-content" id="content-container">
