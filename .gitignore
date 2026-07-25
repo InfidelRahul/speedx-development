@@ -1,4 +1,4 @@
-```
+```php
 # Compiled and build artifacts
 *.pyc
 __pycache__/
