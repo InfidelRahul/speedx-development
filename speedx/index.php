@@ -1,97 +1,67 @@
 <?php
 /**
- * Main template file for SpeedX theme
- * 
+ * Template for displaying posts index
+ *
  * @package SpeedX
  */
 
-if (!defined('ABSPATH')) {
-    exit;
-}
+get_header(); ?>
 
-get_header();
-?>
-
-<div class="content-wrapper fade-enter-active">
+<div class="content-wrapper fade-in">
     <?php if (is_home() && !is_front_page()) : ?>
-        <header class="page-header neu-raised" style="padding: 2rem; margin-bottom: 2rem;">
+        <header class="page-header">
             <h1 class="page-title"><?php single_post_title(); ?></h1>
         </header>
     <?php endif; ?>
 
     <?php if (have_posts()) : ?>
-        <div class="posts-list">
+        <div class="posts-grid">
             <?php while (have_posts()) : the_post(); ?>
-                <article id="post-<?php the_ID(); ?>" <?php post_class('article-card neu-raised'); ?>>
+                <article id="post-<?php the_ID(); ?>" <?php post_class('article-card'); ?>>
                     <?php if (has_post_thumbnail()) : ?>
-                        <div class="post-thumbnail" style="margin-bottom: 1.5rem;">
+                        <div class="post-thumbnail">
                             <a href="<?php the_permalink(); ?>">
-                                <?php the_post_thumbnail('large', array('loading' => 'lazy')); ?>
+                                <?php the_post_thumbnail('medium'); ?>
                             </a>
                         </div>
                     <?php endif; ?>
 
                     <header class="entry-header">
                         <h2 class="entry-title">
-                            <a href="<?php the_permalink(); ?>" rel="bookmark">
-                                <?php the_title(); ?>
-                            </a>
+                            <a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
                         </h2>
-                        
-                        <div class="meta">
-                            <span class="posted-on">
-                                <time datetime="<?php echo get_the_date('c'); ?>">
-                                    <?php echo get_the_date(); ?>
-                                </time>
-                            </span>
-                            <span class="byline">
-                                <?php esc_html_e('by', 'speedx'); ?> 
-                                <a href="<?php echo esc_url(get_author_posts_url(get_the_author_meta('ID'))); ?>">
-                                    <?php the_author(); ?>
-                                </a>
-                            </span>
-                            <?php if (comments_open()) : ?>
-                                <span class="comments-link">
-                                    <a href="<?php the_permalink(); ?>#comments">
-                                        <?php comments_number(__('0 Comments', 'speedx'), __('1 Comment', 'speedx'), __('% Comments', 'speedx')); ?>
-                                    </a>
-                                </span>
-                            <?php endif; ?>
+                        <div class="entry-meta">
+                            <span class="posted-on"><?php echo get_the_date(); ?></span>
+                            <span class="byline"> <?php echo get_the_author(); ?></span>
                         </div>
                     </header>
 
-                    <div class="entry-summary" style="margin-top: 1rem; color: var(--text-muted);">
+                    <div class="entry-summary">
                         <?php the_excerpt(); ?>
                     </div>
 
-                    <footer class="entry-footer" style="margin-top: 1.5rem;">
-                        <a href="<?php the_permalink(); ?>" class="btn-neu">
-                            <?php esc_html_e('Read More', 'speedx'); ?>
-                        </a>
+                    <footer class="entry-footer">
+                        <a href="<?php the_permalink(); ?>" class="btn-neu">Read More</a>
                     </footer>
                 </article>
             <?php endwhile; ?>
         </div>
 
-        <?php the_posts_pagination(array(
+        <?php
+        the_posts_pagination(array(
             'mid_size'  => 2,
-            'prev_text' => __('Previous', 'speedx'),
-            'next_text' => __('Next', 'speedx'),
-            'class'     => 'pagination neu-flat',
-        )); ?>
+            'prev_text' => '&larr;',
+            'next_text' => '&rarr;',
+        ));
+        ?>
 
     <?php else : ?>
-        <section class="no-results neu-raised" style="padding: 3rem; text-align: center;">
-            <header class="page-header" style="margin-bottom: 1.5rem;">
-                <h1 class="page-title"><?php esc_html_e('Nothing Found', 'speedx'); ?></h1>
-            </header>
-            <div class="page-content">
-                <p><?php esc_html_e('It seems we can&rsquo;t find what you&rsquo;re looking for.', 'speedx'); ?></p>
-                <?php get_search_form(); ?>
-            </div>
-        </section>
+        <div class="no-posts">
+            <h2>No posts found</h2>
+            <p>It seems we can't find any posts here. Try searching for something else!</p>
+            <?php get_search_form(); ?>
+        </div>
     <?php endif; ?>
 </div>
 
-<?php
-get_footer();
+<?php get_footer();

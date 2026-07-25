@@ -1,7 +1,8 @@
 <?php
 /**
  * SpeedX Theme Functions
- * Ultra-lightweight SPA theme with zero dependencies
+ * 
+ * Ultra-lightweight SPA theme with neumorphic design
  * 
  * @package SpeedX
  * @since 1.0.0
@@ -11,32 +12,26 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Define theme constants
-define('SPEEDX_VERSION', '1.0.0');
-define('SPEEDX_DIR', get_template_directory());
-define('SPEEDX_URI', get_template_directory_uri());
-define('SPEEDX_ASSETS_URI', SPEEDX_URI . '/assets');
-
 /**
  * Theme Setup
  */
 function speedx_setup() {
     // Add default posts and comments RSS feed links to head
     add_theme_support('automatic-feed-links');
-
+    
     // Let WordPress manage the document title
     add_theme_support('title-tag');
-
+    
     // Enable support for Post Thumbnails
     add_theme_support('post-thumbnails');
-
+    
     // Register navigation menus
     register_nav_menus(array(
         'primary' => __('Primary Menu', 'speedx'),
         'footer'  => __('Footer Menu', 'speedx'),
     ));
-
-    // HTML5 support
+    
+    // Switch default core markup for various elements to HTML5
     add_theme_support('html5', array(
         'search-form',
         'comment-form',
@@ -46,25 +41,22 @@ function speedx_setup() {
         'style',
         'script',
     ));
-
-    // Custom logo support
+    
+    // Add support for custom logo
     add_theme_support('custom-logo', array(
         'height'      => 60,
         'width'       => 200,
         'flex-height' => true,
         'flex-width'  => true,
     ));
-
-    // Custom background support
+    
+    // Add support for custom background
     add_theme_support('custom-background');
-
-    // Responsive embeds
+    
+    // Add support for responsive embeds
     add_theme_support('responsive-embeds');
-
-    // Align wide and full blocks
-    add_theme_support('align-wide');
-
-    // Editor styles
+    
+    // Add support for editor styles
     add_theme_support('editor-styles');
 }
 add_action('after_setup_theme', 'speedx_setup');
@@ -73,85 +65,9 @@ add_action('after_setup_theme', 'speedx_setup');
  * Set content width
  */
 function speedx_content_width() {
-    $GLOBALS['content_width'] = apply_filters('speedx_content_width', 1200);
+    $GLOBALS['content_width'] = apply_filters('speedx_content_width', 800);
 }
 add_action('after_setup_theme', 'speedx_content_width', 0);
-
-/**
- * Enqueue scripts and styles
- */
-function speedx_scripts() {
-    // Main stylesheet - loaded in head for critical rendering path
-    wp_enqueue_style('speedx-style', get_stylesheet_uri(), array(), SPEEDX_VERSION);
-
-    // SPA Router - vanilla JS, no dependencies, deferred to footer
-    wp_enqueue_script('speedx-router', 
-        SPEEDX_ASSETS_URI . '/js/router.js', 
-        array(), 
-        SPEEDX_VERSION, 
-        true
-    );
-
-    // Localize script with config
-    wp_localize_script('speedx-router', 'speedxConfig', array(
-        'ajaxUrl'      => admin_url('admin-ajax.php'),
-        'restUrl'      => esc_url_raw(rest_url()),
-        'nonce'        => wp_create_nonce('wp_rest'),
-        'homeUrl'      => home_url('/'),
-        'siteName'     => get_bloginfo('name'),
-        'spaEnabled'   => get_theme_mod('speedx_enable_spa', true),
-        'loadingType'  => get_theme_mod('speedx_loading_animation', 'bar'),
-        'transitionSpeed' => (float) get_theme_mod('speedx_transition_speed', 0.3),
-    ));
-
-    // Remove emoji scripts for performance
-    remove_action('wp_head', 'print_emoji_detection_script', 7);
-    remove_action('wp_print_styles', 'print_emoji_styles');
-    remove_action('admin_print_scripts', 'print_emoji_detection_script');
-    remove_action('admin_print_styles', 'print_emoji_styles');
-
-    // Remove WordPress default scripts we don't need
-    wp_deregister_script('jquery');
-    wp_deregister_script('jquery-migrate');
-    
-    // Remove block library CSS if not using Gutenberg blocks heavily
-    wp_dequeue_style('wp-block-library');
-    wp_dequeue_style('wp-block-library-theme');
-}
-add_action('wp_enqueue_scripts', 'speedx_scripts');
-
-/**
- * Inline critical CSS for faster FCP
- */
-function speedx_inline_critical_css() {
-    ?>
-    <style id="speedx-critical-css">
-        /* Critical above-the-fold CSS only */
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;line-height:1.6}
-        .site-wrapper{min-height:100vh;display:flex;flex-direction:column}
-        .site-header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;padding:1rem 0;z-index:100}
-        .container{max-width:1200px;margin:0 auto;padding:0 1.5rem}
-        .main-navigation ul{list-style:none;display:flex;gap:1.5rem}
-        .main-navigation a{text-decoration:none;color:#1f2937;font-weight:500}
-        .site-content{flex:1;padding:2rem 0}
-    </style>
-    <?php
-}
-add_action('wp_head', 'speedx_inline_critical_css', 1);
-
-/**
- * Add preload hints for performance
- */
-function speedx_resource_hints($urls, $relation_type) {
-    if ('preconnect' === $relation_type || 'dns-prefetch' === $relation_type) {
-        $urls[] = array(
-            'href' => get_template_directory_uri(),
-            'crossorigin' => 'anonymous',
-        );
-    }
-    return $urls;
-}
-add_filter('wp_resource_hints', 'speedx_resource_hints', 10, 2);
 
 /**
  * Register widget areas
@@ -160,27 +76,262 @@ function speedx_widgets_init() {
     register_sidebar(array(
         'name'          => __('Sidebar', 'speedx'),
         'id'            => 'sidebar-1',
-        'description'   => __('Add widgets here.', 'speedx'),
+        'description'   => __('Add widgets here to appear in your sidebar.', 'speedx'),
         'before_widget' => '<section id="%1$s" class="widget %2$s">',
         'after_widget'  => '</section>',
-        'before_title'  => '<h3 class="widget-title">',
-        'after_title'   => '</h3>',
-    ));
-
-    register_sidebar(array(
-        'name'          => __('Footer', 'speedx'),
-        'id'            => 'footer-1',
-        'description'   => __('Footer widgets.', 'speedx'),
-        'before_widget' => '<div id="%1$s" class="widget %2$s">',
-        'after_widget'  => '</div>',
-        'before_title'  => '<h4 class="widget-title">',
-        'after_title'   => '</h4>',
+        'before_title'  => '<h2 class="widget-title">',
+        'after_title'   => '</h2>',
     ));
 }
 add_action('widgets_init', 'speedx_widgets_init');
 
 /**
- * Custom excerpt length
+ * Enqueue scripts and styles
+ */
+function speedx_scripts() {
+    // Main stylesheet
+    wp_enqueue_style('speedx-style', get_stylesheet_uri(), array(), '1.0.0');
+    
+    // SPA Router - only if SPA is enabled
+    if (get_theme_mod('speedx_spa_enabled', true)) {
+        wp_enqueue_script(
+            'speedx-router',
+            get_template_directory_uri() . '/assets/js/router.js',
+            array(),
+            '1.0.0',
+            true
+        );
+        
+        // Pass AJAX URL and settings to JS
+        wp_localize_script('speedx-router', 'speedxAjax', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'restUrl' => rest_url('speedx/v1/fragment'),
+            'nonce'   => wp_create_nonce('wp_rest'),
+            'homeUrl' => home_url('/'),
+        ));
+    }
+}
+add_action('wp_enqueue_scripts', 'speedx_scripts');
+
+/**
+ * Register REST API endpoint for fragment loading
+ */
+function speedx_register_rest_routes() {
+    register_rest_route('speedx/v1', '/fragment', array(
+        'methods'             => 'GET',
+        'callback'            => 'speedx_get_fragment',
+        'permission_callback' => '__return_true',
+        'args'                => array(
+            'path' => array(
+                'required'          => true,
+                'sanitize_callback' => 'sanitize_text_field',
+                'validate_callback' => function($param) {
+                    return !empty($param);
+                },
+            ),
+        ),
+    ));
+}
+add_action('rest_api_init', 'speedx_register_rest_routes');
+
+/**
+ * Get page fragment for SPA loading
+ */
+function speedx_get_fragment($request) {
+    $path = $request->get_param('path');
+    
+    // Convert path to WordPress query
+    $url = home_url($path);
+    
+    // Parse the URL to get query vars
+    $parsed = parse_url($url);
+    $path_part = isset($parsed['path']) ? $parsed['path'] : '/';
+    
+    // Set up WordPress query based on path
+    global $wp;
+    $wp->query_vars = array();
+    
+    // Handle different types of requests
+    if ($path_part === '/' || $path_part === '') {
+        // Home page
+        $wp->query_vars['pagename'] = '';
+    } elseif (preg_match('#^/page/(\d+)/?$#', $path_part, $matches)) {
+        // Paginated posts
+        $wp->query_vars['paged'] = intval($matches[1]);
+    } else {
+        // Remove leading/trailing slashes
+        $clean_path = trim($path_part, '/');
+        
+        // Check if it's a post type
+        $post_types = get_post_types(array('public' => true), 'objects');
+        foreach ($post_types as $post_type) {
+            if (strpos($clean_path, $post_type->rewrite['slug']) === 0) {
+                $post_name = str_replace($post_type->rewrite['slug'] . '/', '', $clean_path);
+                $wp->query_vars['post_type'] = $post_type->name;
+                $wp->query_vars['name'] = $post_name;
+                break;
+            }
+        }
+        
+        // If no post type matched, try as page or post
+        if (empty($wp->query_vars)) {
+            $wp->query_vars['name'] = $clean_path;
+        }
+    }
+    
+    // Run the query
+    $wp->main_query();
+    
+    // Determine which template to load
+    ob_start();
+    
+    if (is_404()) {
+        locate_template('404.php', true);
+    } elseif (is_singular()) {
+        locate_template('singular.php', true);
+    } elseif (is_home()) {
+        locate_template('index.php', true);
+    } elseif (is_page()) {
+        locate_template('page.php', true);
+    } elseif (is_archive()) {
+        locate_template('archive.php', true);
+    } elseif (is_search()) {
+        locate_template('search.php', true);
+    } else {
+        locate_template('index.php', true);
+    }
+    
+    $content = ob_get_clean();
+    
+    // Get the title
+    ob_start();
+    wp_title('|', false);
+    $title = ob_get_clean();
+    if (empty($title)) {
+        $title = get_bloginfo('name');
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'content' => $content,
+        'title'   => $title,
+    ), 200);
+}
+
+/**
+ * Customizer Settings
+ */
+function speedx_customize_register($wp_customize) {
+    // SPA Settings Section
+    $wp_customize->add_section('speedx_spa_settings', array(
+        'title'    => __('SPA Settings', 'speedx'),
+        'priority' => 30,
+    ));
+    
+    // Enable/Disable SPA
+    $wp_customize->add_setting('speedx_spa_enabled', array(
+        'default'           => true,
+        'sanitize_callback' => 'rest_sanitize_boolean',
+    ));
+    
+    $wp_customize->add_control('speedx_spa_enabled', array(
+        'label'   => __('Enable SPA Navigation', 'speedx'),
+        'section' => 'speedx_spa_settings',
+        'type'    => 'checkbox',
+    ));
+    
+    // Loading Animation
+    $wp_customize->add_setting('speedx_loading_animation', array(
+        'default'           => true,
+        'sanitize_callback' => 'rest_sanitize_boolean',
+    ));
+    
+    $wp_customize->add_control('speedx_loading_animation', array(
+        'label'   => __('Show Loading Animation', 'speedx'),
+        'section' => 'speedx_spa_settings',
+        'type'    => 'checkbox',
+    ));
+    
+    // Transition Speed
+    $wp_customize->add_setting('speedx_transition_speed', array(
+        'default'           => 400,
+        'sanitize_callback' => 'absint',
+    ));
+    
+    $wp_customize->add_control('speedx_transition_speed', array(
+        'label'       => __('Transition Speed (ms)', 'speedx'),
+        'section'     => 'speedx_spa_settings',
+        'type'        => 'number',
+        'input_attrs' => array(
+            'min'  => 100,
+            'max'  => 1000,
+            'step' => 50,
+        ),
+    ));
+}
+add_action('customize_register', 'speedx_customize_register');
+
+/**
+ * Performance Optimizations
+ */
+function speedx_performance_optimizations() {
+    // Remove emoji scripts
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    remove_action('admin_print_styles', 'print_emoji_styles');
+    
+    // Remove WordPress version
+    remove_action('wp_head', 'wp_generator');
+    
+    // Remove wlwmanifest link
+    remove_action('wp_head', 'wlwmanifest_link');
+    
+    // Remove RSD link
+    remove_action('wp_head', 'rsd_link');
+    
+    // Remove shortlink
+    remove_action('wp_head', 'wp_shortlink_wp_head');
+    
+    // Remove REST API links from head (we use it internally)
+    remove_action('wp_head', 'rest_output_link_wp_head');
+    
+    // Remove oEmbed discovery links
+    remove_action('wp_head', 'wp_oembed_add_discovery_links');
+    
+    // Disable XML-RPC
+    add_filter('xmlrpc_enabled', '__return_false');
+    
+    // Remove jQuery Migrate
+    wp_deregister_script('jquery-migrate');
+    
+    // Dequeue block library CSS if not using Gutenberg
+    if (!is_admin()) {
+        wp_dequeue_style('wp-block-library');
+        wp_dequeue_style('wp-block-library-theme');
+    }
+}
+add_action('init', 'speedx_performance_optimizations');
+
+/**
+ * Add resource hints for performance
+ */
+function speedx_resource_hints($urls, $relation_type) {
+    if ('preconnect' === $relation_type) {
+        $urls[] = array(
+            'href' => 'https://fonts.googleapis.com',
+        );
+        $urls[] = array(
+            'href' => 'https://fonts.gstatic.com',
+            'crossorigin' => 'anonymous',
+        );
+    }
+    return $urls;
+}
+add_filter('wp_resource_hints', 'speedx_resource_hints', 10, 2);
+
+/**
+ * Excerpt length
  */
 function speedx_excerpt_length($length) {
     return 25;
@@ -188,7 +339,7 @@ function speedx_excerpt_length($length) {
 add_filter('excerpt_length', 'speedx_excerpt_length');
 
 /**
- * Custom excerpt more
+ * Excerpt more
  */
 function speedx_excerpt_more($more) {
     return '&hellip;';
@@ -196,15 +347,17 @@ function speedx_excerpt_more($more) {
 add_filter('excerpt_more', 'speedx_excerpt_more');
 
 /**
- * Add body classes for SPA
+ * Body classes
  */
 function speedx_body_classes($classes) {
-    $classes[] = 'speedx-theme';
+    // Add class if SPA is enabled
+    if (get_theme_mod('speedx_spa_enabled', true)) {
+        $classes[] = 'spa-enabled';
+    }
     
+    // Add singular class
     if (is_singular()) {
         $classes[] = 'singular';
-    } else {
-        $classes[] = 'archive';
     }
     
     return $classes;
@@ -215,277 +368,7 @@ add_filter('body_class', 'speedx_body_classes');
  * Preload key resources
  */
 function speedx_preload_resources() {
-    echo '<link rel="preconnect" href="' . esc_url(get_template_directory_uri()) . '">' . "\n";
-    echo '<link rel="dns-prefetch" href="//fonts.googleapis.com">' . "\n";
+    echo '<link rel="preconnect" href="https://fonts.googleapis.com">';
+    echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
 }
-add_action('wp_head', 'speedx_preload_resources', 2);
-
-/**
- * Remove unnecessary WordPress head elements for performance and security
- */
-remove_action('wp_head', 'wp_generator');
-remove_action('wp_head', 'wlwmanifest_link');
-remove_action('wp_head', 'rsd_link');
-remove_action('wp_head', 'wp_shortlink_wp_head');
-
-/**
- * Disable XML-RPC to prevent brute force attacks
- */
-add_filter('xmlrpc_enabled', '__return_false');
-
-/**
- * Custom template for SPA fragment requests via AJAX
- */
-function speedx_ajax_load_fragment() {
-    if (!isset($_GET['template']) || !isset($_GET['path'])) {
-        wp_send_json_error(array('message' => 'Missing parameters'), 400);
-    }
-
-    $template = sanitize_text_field($_GET['template']);
-    $path     = sanitize_text_field($_GET['path']);
-    
-    // Parse the path to set up WordPress query
-    $path = str_replace(home_url('/'), '', $path);
-    $path = '/' . trim($path, '/');
-    
-    // Set up the query based on path
-    $_SERVER['REQUEST_URI'] = $path;
-    
-    // Load the appropriate template
-    locate_template($template . '.php', true);
-    
-    wp_die();
-}
-add_action('wp_ajax_speedx_load_fragment', 'speedx_ajax_load_fragment');
-add_action('wp_ajax_nopriv_speedx_load_fragment', 'speedx_ajax_load_fragment');
-
-/**
- * REST API endpoint for content fragments
- */
-function speedx_register_rest_routes() {
-    register_rest_route('speedx/v1', '/fragment', array(
-        'methods'             => 'GET',
-        'callback'            => 'speedx_rest_fragment_callback',
-        'permission_callback' => '__return_true',
-        'args'                => array(
-            'template' => array(
-                'required'          => false,
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'validate_callback' => 'speedx_validate_template',
-            ),
-            'url'      => array(
-                'required'          => true,
-                'type'              => 'string',
-                'sanitize_callback' => 'esc_url_raw',
-            ),
-        ),
-    ));
-}
-add_action('rest_api_init', 'speedx_register_rest_routes');
-
-/**
- * Validate template name against allowed templates
- */
-function speedx_validate_template($template, $request, $param) {
-    $allowed_templates = array(
-        'index',
-        'single',
-        'page',
-        'archive',
-        'category',
-        'tag',
-        'author',
-        'date',
-        'search',
-        '404',
-    );
-    
-    return in_array($template, $allowed_templates, true);
-}
-
-/**
- * REST API callback for fragment loading
- */
-function speedx_rest_fragment_callback($request) {
-    $template = $request->get_param('template');
-    $url      = $request->get_param('url');
-    
-    if (!$url) {
-        return new WP_Error('missing_params', 'Missing URL parameter', array('status' => 400));
-    }
-    
-    // Auto-detect template if not provided
-    if (!$template) {
-        $template = speedx_detect_template_from_url($url);
-    }
-    
-    // Setup WordPress environment for the requested path
-    $path = str_replace(home_url('/'), '', $url);
-    $_SERVER['REQUEST_URI'] = '/' . trim($path, '/');
-    
-    // Parse the request to set up proper query vars
-    global $wp;
-    $wp->parse_request($_SERVER['REQUEST_URI']);
-    
-    // Capture template output
-    ob_start();
-    locate_template($template . '.php', true);
-    $content = ob_get_clean();
-    
-    return new WP_REST_Response(array(
-        'content'           => $content,
-        'title'             => wp_get_document_title(),
-        'meta_description'  => speedx_get_meta_description(),
-    ), 200);
-}
-
-/**
- * Detect appropriate template based on URL pattern
- */
-function speedx_detect_template_from_url($url) {
-    $path = parse_url($url, PHP_URL_PATH);
-    
-    // Check for date-based archives (single posts)
-    if (preg_match('#/\d{4}/\d{2}/#', $path)) {
-        return 'single';
-    }
-    
-    // Check for pagination
-    if (strpos($path, '/page/') !== false) {
-        return 'archive';
-    }
-    
-    // Check for category/tag/author archives
-    if (strpos($path, '/category/') !== false || 
-        strpos($path, '/tag/') !== false || 
-        strpos($path, '/author/') !== false) {
-        return 'archive';
-    }
-    
-    // Default to index for homepage
-    return 'index';
-}
-
-/**
- * Get meta description for SEO
- */
-function speedx_get_meta_description() {
-    if (is_singular()) {
-        global $post;
-        if ($post && $post->post_excerpt) {
-            return wp_strip_all_tags($post->post_excerpt);
-        }
-        if ($post && $post->post_content) {
-            return wp_trim_words(wp_strip_all_tags($post->post_content), 55);
-        }
-    }
-    
-    return get_bloginfo('description');
-}
-
-/**
- * Theme Customizer Settings
- */
-function speedx_customize_register($wp_customize) {
-    // Colors Section
-    $wp_customize->add_section('speedx_colors', array(
-        'title'    => __('SpeedX Colors', 'speedx'),
-        'priority' => 30,
-    ));
-
-    // Primary Color
-    $wp_customize->add_setting('speedx_primary_color', array(
-        'default'           => '#2563eb',
-        'sanitize_callback' => 'sanitize_hex_color',
-        'transport'         => 'refresh',
-    ));
-
-    $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize, 'speedx_primary_color', array(
-        'label'    => __('Primary Color', 'speedx'),
-        'section'  => 'speedx_colors',
-        'settings' => 'speedx_primary_color',
-    )));
-
-    // SPA Settings Section
-    $wp_customize->add_section('speedx_spa', array(
-        'title'    => __('SPA Settings', 'speedx'),
-        'priority' => 35,
-    ));
-
-    // Enable/Disable SPA
-    $wp_customize->add_setting('speedx_enable_spa', array(
-        'default'           => true,
-        'sanitize_callback' => 'rest_sanitize_boolean',
-    ));
-
-    $wp_customize->add_control('speedx_enable_spa', array(
-        'label'       => __('Enable SPA Mode', 'speedx'),
-        'description' => __('Load pages without full refresh', 'speedx'),
-        'section'     => 'speedx_spa',
-        'type'        => 'checkbox',
-    ));
-
-    // Loading Animation
-    $wp_customize->add_setting('speedx_loading_animation', array(
-        'default'           => 'bar',
-        'sanitize_callback' => 'sanitize_text_field',
-    ));
-
-    $wp_customize->add_control('speedx_loading_animation', array(
-        'label'   => __('Loading Animation', 'speedx'),
-        'section' => 'speedx_spa',
-        'type'    => 'select',
-        'choices' => array(
-            'bar'     => __('Progress Bar', 'speedx'),
-            'spinner' => __('Spinner', 'speedx'),
-            'none'    => __('None', 'speedx'),
-        ),
-    ));
-
-    // Transition Speed
-    $wp_customize->add_setting('speedx_transition_speed', array(
-        'default'           => '0.3',
-        'sanitize_callback' => 'speedx_sanitize_transition_speed',
-    ));
-
-    $wp_customize->add_control('speedx_transition_speed', array(
-        'label'       => __('Transition Speed (seconds)', 'speedx'),
-        'section'     => 'speedx_spa',
-        'type'        => 'number',
-        'input_attrs' => array(
-            'min'  => 0,
-            'max'  => 2,
-            'step' => 0.1,
-        ),
-    ));
-}
-add_action('customize_register', 'speedx_customize_register');
-
-/**
- * Sanitize transition speed value
- */
-function speedx_sanitize_transition_speed($value) {
-    $float_val = (float) $value;
-    return max(0, min(2, $float_val));
-}
-
-/**
- * Output customizer CSS
- */
-function speedx_customizer_css() {
-    $primary_color = get_theme_mod('speedx_primary_color', '#2563eb');
-    $transition_speed = get_theme_mod('speedx_transition_speed', '0.3');
-    
-    if ($primary_color !== '#2563eb' || $transition_speed !== '0.3') {
-        echo '<style>';
-        if ($primary_color !== '#2563eb') {
-            echo ':root{--primary-color:' . esc_attr($primary_color) . '}';
-        }
-        if ($transition_speed !== '0.3') {
-            echo ':root{--transition-speed:' . esc_attr($transition_speed) . 's}';
-        }
-        echo '</style>';
-    }
-}
-add_action('wp_head', 'speedx_customizer_css', 100);
+add_action('wp_head', 'speedx_preload_resources', 1);

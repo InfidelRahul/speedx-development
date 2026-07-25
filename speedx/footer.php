@@ -1,25 +1,20 @@
-<?php
-/**
- * Footer template for SpeedX theme
- * 
- * @package SpeedX
- */
+    </main>
 
-if (!defined('ABSPATH')) {
-    exit;
-}
-?>
-    </main><!-- #content-container -->
-
-    <footer id="colophon" class="site-footer">
-        <div class="site-info neu-flat" style="padding: 2rem; border-radius: var(--radius-md);">
-            <span class="copyright">
-                &copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?>. 
-                <?php esc_html_e('Powered by WordPress', 'speedx'); ?>
-            </span>
+    <footer class="site-footer">
+        <div class="footer-content">
+            <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?>. All rights reserved.</p>
+            <?php
+            wp_nav_menu(array(
+                'theme_location' => 'footer',
+                'menu_class'     => 'footer-menu',
+                'container'      => false,
+                'fallback_cb'    => false,
+                'depth'          => 1,
+            ));
+            ?>
         </div>
     </footer>
-</div><!-- #page -->
+</div>
 
 <?php wp_footer(); ?>
 </body>

@@ -1,8 +1,8 @@
 /**
  * SpeedX SPA Router
  * 
- * Ultra-lightweight vanilla JavaScript router for partial page loads.
- * Implements History API for seamless navigation without page refreshes.
+ * Ultra-lightweight vanilla JavaScript router for partial page loads
+ * Uses History API and Fetch for seamless navigation without page refreshes
  * 
  * @package SpeedX
  * @version 1.0.0
@@ -12,282 +12,303 @@
     'use strict';
 
     /**
-     * Router configuration
+     * Router Configuration
      */
-    const CONFIG = {
+    const config = {
         contentSelector: '#content-container',
-        loaderSelector: '#spa-loader',
-        linkSelector: 'a[href^="' + window.location.origin + '"]:not([target="_blank"]):not([download]):not(.no-spa)',
+        loaderSelector: '#page-loader',
+        linkSelector: 'a[href^="' + window.location.origin + '"]:not([data-no-spa]):not([target="_blank"]):not([download])',
         formSelector: 'form[method="get"]',
-        transitionDuration: 300,
-        apiEndpoint: '/wp-json/speedx/v1/fragment',
+        transitionSpeed: 400,
+        showLoader: true,
     };
 
     /**
-     * Router state management
+     * State management
      */
-    const state = {
-        isLoading: false,
-        currentUrl: window.location.href,
-        historyIndex: 0,
-    };
-
-    /**
-     * DOM Elements cache
-     */
-    let elements = {};
+    let isLoading = false;
+    let currentUrl = window.location.href;
 
     /**
      * Initialize the router
      */
     function init() {
-        cacheElements();
-        bindEvents();
-        handleInitialLoad();
+        // Get settings from WordPress if available
+        if (typeof speedxAjax !== 'undefined') {
+            config.showLoader = speedxAjax.showLoader !== false;
+            config.transitionSpeed = parseInt(speedxAjax.transitionSpeed) || 400;
+        }
+
+        // Attach event listeners
+        attachEventListeners();
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', handlePopState);
+
         console.log('SpeedX Router initialized');
     }
 
     /**
-     * Cache frequently accessed DOM elements
+     * Attach all event listeners
      */
-    function cacheElements() {
-        elements = {
-            content: document.querySelector(CONFIG.contentSelector),
-            loader: document.querySelector(CONFIG.loaderSelector),
-            title: document.title,
-        };
-    }
+    function attachEventListeners() {
+        // Delegate link clicks
+        document.addEventListener('click', handleLinkClick, true);
 
-    /**
-     * Bind event listeners
-     */
-    function bindEvents() {
-        // Delegate click events for links
-        document.addEventListener('click', handleClick, true);
-        
-        // Handle browser back/forward
-        window.addEventListener('popstate', handlePopState);
-        
-        // Handle search forms
+        // Delegate form submissions (search forms)
         document.addEventListener('submit', handleFormSubmit, true);
     }
 
     /**
-     * Handle link clicks
-     * @param {Event} e - Click event
+     * Handle link clicks for SPA navigation
+     * @param {Event} event - Click event
      */
-    function handleClick(e) {
-        const link = e.target.closest(CONFIG.linkSelector);
+    function handleLinkClick(event) {
+        // Find closest anchor tag
+        const link = event.target.closest('a');
         
-        if (!link || !link.href) {
+        if (!link || !link.matches(config.linkSelector)) {
             return;
         }
 
-        // Check if URL is internal and should use SPA
-        const url = new URL(link.href);
-        const isInternal = url.origin === window.location.origin;
-        const isSamePath = url.pathname === window.location.pathname;
-        
-        if (!isInternal || isSamePath) {
+        // Ignore special clicks
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
             return;
         }
 
-        e.preventDefault();
-        navigateTo(link.href);
+        // Get href
+        const href = link.getAttribute('href');
+        
+        // Ignore hash-only links
+        if (href === '#' || href.startsWith('#')) {
+            return;
+        }
+
+        // Ignore same-page links
+        if (href === currentUrl) {
+            event.preventDefault();
+            return;
+        }
+
+        // Prevent default and navigate via SPA
+        event.preventDefault();
+        navigateTo(href);
     }
 
     /**
-     * Handle form submissions (search)
-     * @param {Event} e - Submit event
+     * Handle form submissions (search forms)
+     * @param {Event} event - Submit event
      */
-    function handleFormSubmit(e) {
-        const form = e.target.closest(CONFIG.formSelector);
+    function handleFormSubmit(event) {
+        const form = event.target;
         
-        if (!form) {
+        if (!form.matches(config.formSelector)) {
             return;
         }
 
-        e.preventDefault();
-        
+        event.preventDefault();
+
+        // Build query string
         const formData = new FormData(form);
         const queryString = new URLSearchParams(formData).toString();
-        const action = form.action || window.location.origin;
-        const url = action + '?' + queryString;
+        
+        // Navigate to search results
+        const action = form.getAttribute('action') || window.location.origin;
+        const url = action + (action.includes('?') ? '&' : '?') + queryString;
         
         navigateTo(url);
     }
 
     /**
-     * Navigate to a new URL
-     * @param {string} url - Target URL
-     * @param {boolean} pushState - Whether to push to history
+     * Navigate to a new URL via SPA
+     * @param {string} url - URL to navigate to
      */
-    function navigateTo(url, pushState = true) {
-        if (state.isLoading || url === state.currentUrl) {
+    async function navigateTo(url) {
+        if (isLoading) {
             return;
         }
 
-        state.isLoading = true;
-        showLoader();
+        isLoading = true;
+        currentUrl = url;
 
-        // Update browser history
-        if (pushState) {
-            history.pushState({ url: url }, '', url);
+        // Show loader
+        if (config.showLoader) {
+            showLoader();
         }
 
-        // Fetch new content with full URL for REST API
-        fetchContent(url)
-            .then((data) => {
-                updatePage(data);
-                state.currentUrl = url;
-                scrollToTop();
-            })
-            .catch((error) => {
-                console.error('Navigation error:', error);
-                window.location.href = url; // Fallback to full page load
-            })
-            .finally(() => {
-                state.isLoading = false;
-                hideLoader();
+        try {
+            // Fetch the new content
+            const path = url.replace(window.location.origin, '');
+            const response = await fetch(`${speedxAjax.restUrl}?path=${encodeURIComponent(path)}`, {
+                headers: {
+                    'X-WP-Nonce': speedxAjax.nonce,
+                },
             });
-    }
 
-    /**
-     * Handle browser back/forward navigation
-     * @param {PopStateEvent} e - PopState event
-     */
-    function handlePopState(e) {
-        if (e.state && e.state.url) {
-            navigateTo(e.state.url, false);
-        }
-    }
-
-    /**
-     * Fetch content from server
-     * @param {string} url - URL to fetch
-     * @returns {Promise<Object>} - Response data
-     */
-    function fetchContent(url) {
-        // Determine template based on URL pattern
-        let template = 'index';
-        
-        if (url.includes('/page/') || url.includes('/category/') || url.includes('/tag/') || url.includes('/author/')) {
-            template = 'archive';
-        } else if (url.includes('?s=')) {
-            template = 'search';
-        } else if (url.match(/\/\d{4}\/\d{2}\//)) {
-            template = 'single';
-        } else if (url === window.location.origin + '/' || url === window.location.origin) {
-            template = 'index';
-        }
-        
-        const apiUrl = CONFIG.apiEndpoint + '?template=' + encodeURIComponent(template) + '&url=' + encodeURIComponent(url);
-        
-        return fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'same-origin',
-        })
-        .then((response) => {
             if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update browser history
+                history.pushState({ url: url }, '', url);
+
+                // Update content with fade transition
+                await updateContent(data.content, data.title);
+
+                // Scroll to top
+                window.scrollTo(0, 0);
+
+                // Re-initialize any dynamic content
+                reinitializeDynamicContent();
+            } else {
+                throw new Error('Failed to load content');
+            }
+        } catch (error) {
+            console.error('SPA Navigation error:', error);
+            // Fallback to full page load
+            window.location.href = url;
+        } finally {
+            isLoading = false;
+            hideLoader();
+        }
+    }
+
+    /**
+     * Handle browser back/forward buttons
+     * @param {PopStateEvent} event - PopState event
+     */
+    function handlePopState(event) {
+        if (isLoading) {
+            return;
+        }
+
+        const url = window.location.href;
+        
+        if (url === currentUrl) {
+            return;
+        }
+
+        currentUrl = url;
+        isLoading = true;
+
+        if (config.showLoader) {
+            showLoader();
+        }
+
+        // Fetch the content for the current URL
+        const path = url.replace(window.location.origin, '');
+        
+        fetch(`${speedxAjax.restUrl}?path=${encodeURIComponent(path)}`, {
+            headers: {
+                'X-WP-Nonce': speedxAjax.nonce,
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateContent(data.content, data.title);
+                reinitializeDynamicContent();
+            }
+        })
+        .catch(error => {
+            console.error('PopState navigation error:', error);
+            window.location.reload();
+        })
+        .finally(() => {
+            isLoading = false;
+            hideLoader();
         });
     }
 
     /**
-     * Update page content
-     * @param {Object} data - Response data with content and title
+     * Update page content with fade transition
+     * @param {string} content - New HTML content
+     * @param {string} title - New page title
      */
-    function updatePage(data) {
-        if (!elements.content) {
-            return;
-        }
-
-        // Fade out
-        elements.content.style.opacity = '0';
-        elements.content.style.transform = 'translateY(10px)';
-
-        setTimeout(() => {
-            // Update content
-            elements.content.innerHTML = data.content || '';
+    function updateContent(content, title) {
+        return new Promise((resolve) => {
+            const container = document.querySelector(config.contentSelector);
             
-            // Update title
-            if (data.title) {
-                document.title = data.title;
-                elements.title = data.title;
+            if (!container) {
+                resolve();
+                return;
             }
 
-            // Update meta description if available
-            if (data.meta_description) {
-                let metaDesc = document.querySelector('meta[name="description"]');
-                if (!metaDesc) {
-                    metaDesc = document.createElement('meta');
-                    metaDesc.name = 'description';
-                    document.head.appendChild(metaDesc);
-                }
-                metaDesc.content = data.meta_description;
-            }
+            // Fade out
+            container.style.opacity = '0';
+            container.style.transition = `opacity ${config.transitionSpeed}ms ease`;
 
-            // Fade in
-            elements.content.classList.add('fade-enter-active');
-            elements.content.style.opacity = '1';
-            elements.content.style.transform = 'translateY(0)';
-
-            // Rebind events for new content
             setTimeout(() => {
-                elements.content.classList.remove('fade-enter-active');
-            }, CONFIG.transitionDuration);
+                // Update content
+                container.innerHTML = content;
+                
+                // Update title
+                if (title) {
+                    document.title = title;
+                }
 
-            // Dispatch custom event for other scripts
-            window.dispatchEvent(new CustomEvent('speedx:navigation-complete', { 
-                detail: { url: state.currentUrl } 
-            }));
-        }, CONFIG.transitionDuration / 2);
+                // Fade in
+                container.style.opacity = '1';
+                
+                // Add fade-in animation class to new content
+                const wrapper = container.querySelector('.content-wrapper');
+                if (wrapper) {
+                    wrapper.classList.add('fade-in');
+                }
+
+                resolve();
+            }, config.transitionSpeed);
+        });
     }
 
     /**
      * Show loading indicator
      */
     function showLoader() {
-        if (elements.loader) {
-            elements.loader.classList.add('active');
+        let loader = document.querySelector(config.loaderSelector);
+        
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.id = 'page-loader';
+            loader.innerHTML = '<div class="loader-spinner"></div>';
+            document.body.appendChild(loader);
         }
+
+        loader.classList.add('active');
     }
 
     /**
      * Hide loading indicator
      */
     function hideLoader() {
-        if (elements.loader) {
-            elements.loader.classList.remove('active');
+        const loader = document.querySelector(config.loaderSelector);
+        
+        if (loader) {
+            loader.classList.remove('active');
         }
     }
 
     /**
-     * Scroll to top of page
+     * Reinitialize dynamic content after page load
+     * This is where you can reinitialize any JS plugins or features
      */
-    function scrollToTop() {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth',
+    function reinitializeDynamicContent() {
+        // Dispatch custom event for other scripts to hook into
+        const event = new CustomEvent('speedxContentLoaded', {
+            detail: { url: currentUrl }
         });
-    }
+        document.dispatchEvent(event);
 
-    /**
-     * Handle initial page load animations
-     */
-    function handleInitialLoad() {
-        document.addEventListener('DOMContentLoaded', () => {
-            const wrapper = document.querySelector('.content-wrapper');
-            if (wrapper) {
-                wrapper.classList.add('fade-enter-active');
-            }
-        });
+        // Re-attach event listeners to new content
+        attachEventListeners();
     }
 
     // Initialize when DOM is ready
@@ -296,10 +317,5 @@
     } else {
         init();
     }
-
-    // Expose navigate function globally for programmatic navigation
-    window.SpeedXRouter = {
-        navigate: navigateTo,
-    };
 
 })();

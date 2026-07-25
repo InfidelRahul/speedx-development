@@ -1,108 +1,93 @@
 <?php
 /**
- * Comments template for SpeedX theme
- * 
+ * Template for displaying comments
+ *
  * @package SpeedX
  */
-
-if (!defined('ABSPATH')) {
-    exit;
-}
 
 if (post_password_required()) {
     return;
 }
 ?>
 
-<div id="comments" class="comments-area neu-flat" style="padding: 2rem; margin-top: 3rem; border-radius: var(--radius-md);">
+<div id="comments" class="comments-area">
     <?php if (have_comments()) : ?>
-        <h2 class="comments-title" style="margin-bottom: 1.5rem; font-size: 1.5rem;">
+        <h2 class="comments-title">
             <?php
             $comment_count = get_comments_number();
-            printf(
-                esc_html(_n('%d Comment', '%d Comments', $comment_count, 'speedx')),
-                $comment_count
-            );
+            if ('1' === $comment_count) {
+                printf('One comment on &ldquo;%1$s&rdquo;', '<span>' . get_the_title() . '</span>');
+            } else {
+                printf('%1$s comments on &ldquo;%2$s&rdquo;', number_format_i18n($comment_count), '<span>' . get_the_title() . '</span>');
+            }
             ?>
         </h2>
 
-        <ol class="comment-list" style="list-style: none; padding: 0;">
+        <ol class="comment-list">
             <?php
             wp_list_comments(array(
                 'style'       => 'ol',
                 'short_ping'  => true,
                 'avatar_size' => 50,
-                'callback'    => 'speedx_comment_callback',
+                'callback'    => function($comment, $args, $depth) {
+                    ?>
+                    <li id="comment-<?php comment_ID(); ?>" <?php comment_class('comment'); ?>>
+                        <article class="comment-body">
+                            <header class="comment-meta">
+                                <div class="comment-author vcard">
+                                    <?php echo get_avatar($comment, 50); ?>
+                                    <span class="fn"><?php comment_author_link(); ?></span>
+                                </div>
+                                <div class="comment-metadata">
+                                    <a href="<?php echo esc_url(get_comment_link($comment)); ?>">
+                                        <time><?php comment_date(); ?> at <?php comment_time(); ?></time>
+                                    </a>
+                                    <?php edit_comment_link('Edit', ' <span class="edit-link">', '</span>'); ?>
+                                </div>
+                            </header>
+
+                            <?php if ('0' === $comment->comment_approved) : ?>
+                                <p class="comment-awaiting-moderation">Your comment is awaiting moderation.</p>
+                            <?php endif; ?>
+
+                            <div class="comment-content">
+                                <?php comment_text(); ?>
+                            </div>
+
+                            <footer class="comment-reply">
+                                <?php
+                                comment_reply_link(array_merge($args, array(
+                                    'depth'     => $depth,
+                                    'max_depth' => $args['max_depth'],
+                                    'before'    => '<span class="btn-neu">',
+                                    'after'     => '</span>',
+                                )));
+                                ?>
+                            </footer>
+                        </article>
+                    <?php
+                },
             ));
             ?>
         </ol>
 
         <?php
-        the_comments_pagination(array(
-            'prev_text' => __('← Older', 'speedx'),
-            'next_text' => __('Newer →', 'speedx'),
-        ));
-        ?>
+        the_comments_navigation();
 
-    <?php endif; ?>
+        if (!comments_open()) :
+            ?>
+            <p class="no-comments">Comments are closed.</p>
+        <?php endif; ?>
 
-    <?php if (!comments_open() && get_comments_number() && post_type_supports(get_post_type(), 'comments')) : ?>
-        <p class="no-comments" style="color: var(--text-muted);">
-            <?php esc_html_e('Comments are closed.', 'speedx'); ?>
-        </p>
     <?php endif; ?>
 
     <?php
     comment_form(array(
-        'class_submit'  => 'btn-neu',
-        'title_reply'   => __('Leave a Comment', 'speedx'),
-        'label_submit'  => __('Post Comment', 'speedx'),
-        'comment_field' => '<p class="comment-form-comment"><label for="comment">' . __('Comment', 'speedx') . '</label><textarea id="comment" name="comment" class="neu-pressed" required></textarea></p>',
+        'class_form'         => 'comment-form',
+        'title_reply'        => 'Leave a Comment',
+        'title_reply_before' => '<h3 id="reply-title" class="comment-reply-title">',
+        'title_reply_after'  => '</h3>',
+        'submit_button'      => '<button name="%1$s" type="submit" id="%2$s" class="%3$s btn-neu">%4$s</button>',
     ));
     ?>
 </div>
-
-<?php
-/**
- * Custom comment callback function
- */
-function speedx_comment_callback($comment, $args, $depth) {
-    ?>
-    <li id="comment-<?php comment_ID(); ?>" <?php comment_class('neu-raised', null, null, false); ?> style="padding: 1.5rem; margin-bottom: 1rem; list-style: none;">
-        <article class="comment-body">
-            <header class="comment-meta" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <div class="comment-author-avatar" style="flex-shrink: 0;">
-                    <?php echo get_avatar($comment, 50, '', '', array('class' => 'neu-circle')); ?>
-                </div>
-                <div class="comment-author-info">
-                    <span class="comment-author" style="font-weight: 600;">
-                        <?php comment_author_link(); ?>
-                    </span>
-                    <span class="comment-date" style="display: block; font-size: 0.875rem; color: var(--text-muted);">
-                        <a href="<?php echo esc_url(get_comment_link($comment, $args)); ?>">
-                            <time datetime="<?php comment_time('c'); ?>">
-                                <?php printf(__('%1$s at %2$s', 'speedx'), get_comment_date(), get_comment_time()); ?>
-                            </time>
-                        </a>
-                    </span>
-                </div>
-            </header>
-
-            <div class="comment-content" style="line-height: 1.6;">
-                <?php comment_text(); ?>
-            </div>
-
-            <footer class="comment-actions" style="margin-top: 1rem;">
-                <?php
-                edit_comment_link(__('Edit', 'speedx'), '<span class="edit-link" style="margin-right: 1rem;">', '</span>');
-                comment_reply_link(array_merge($args, array(
-                    'depth'     => $depth,
-                    'max_depth' => $args['max_depth'],
-                    'before'    => '<span class="reply-link">',
-                    'after'     => '</span>',
-                )));
-                ?>
-            </footer>
-        </article>
-    <?php
-}
