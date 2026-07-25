@@ -256,37 +256,34 @@ observer.observe(el);
  * Setup mobile navigation toggle
  */
 function setupMobileNav() {
-const hamburger = document.getElementById('hamburger-toggle');
-const drawer = document.getElementById('mobile-nav-drawer');
-
-if (!hamburger || !drawer) return;
-
-// Toggle menu on hamburger click
-hamburger.addEventListener('click', (e) => {
-e.stopPropagation();
-const isActive = drawer.classList.toggle('active');
-hamburger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
-drawer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
-});
-
-// Close drawer when clicking outside
-document.addEventListener('click', (e) => {
-if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
-drawer.classList.remove('active');
-hamburger.setAttribute('aria-expanded', 'false');
-drawer.setAttribute('aria-hidden', 'true');
-}
-});
-
-// Close drawer when clicking a menu link
-drawer.addEventListener('click', (e) => {
-const link = e.target.closest('a[href]');
-if (link) {
-drawer.classList.remove('active');
-hamburger.setAttribute('aria-expanded', 'false');
-drawer.setAttribute('aria-hidden', 'true');
-}
-});
+	const hamburger = document.getElementById('hamburger-toggle');
+	const nav = document.querySelector('.main-navigation');
+	
+	if (!hamburger || !nav) return;
+	
+	// Toggle menu on hamburger click
+	hamburger.addEventListener('click', (e) => {
+		e.stopPropagation();
+		const isActive = nav.classList.toggle('active');
+		hamburger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+	});
+	
+	// Close nav when clicking outside
+	document.addEventListener('click', (e) => {
+		if (!hamburger.contains(e.target) && !nav.contains(e.target)) {
+			nav.classList.remove('active');
+			hamburger.setAttribute('aria-expanded', 'false');
+		}
+	});
+	
+	// Close nav when clicking a menu link
+	nav.addEventListener('click', (e) => {
+		const link = e.target.closest('a[href]');
+		if (link) {
+			nav.classList.remove('active');
+			hamburger.setAttribute('aria-expanded', 'false');
+		}
+	});
 }
 
 /**

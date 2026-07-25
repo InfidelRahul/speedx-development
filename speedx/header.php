@@ -50,8 +50,16 @@ echo esc_html( substr( get_bloginfo( 'name' ), 0, 2 ) );
 </span>
 </div>
 
-<!-- Primary Navigation (Desktop only - hidden on mobile via CSS) -->
+<!-- Single Navigation Container - Transforms via CSS/JS -->
 <nav class="main-navigation" aria-label="<?php esc_attr_e( 'Primary Menu', 'speedx' ); ?>">
+<button class="hamburger-btn" id="hamburger-toggle" aria-label="<?php esc_attr_e( 'Toggle Menu', 'speedx' ); ?>" aria-expanded="false" aria-controls="primary-menu">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<line x1="3" y1="6" x2="21" y2="6"></line>
+<line x1="3" y1="12" x2="21" y2="12"></line>
+<line x1="3" y1="18" x2="21" y2="18"></line>
+</svg>
+</button>
+
 <?php
 wp_nav_menu( [
 'theme_location' => 'primary',
@@ -61,29 +69,6 @@ wp_nav_menu( [
 ] );
 ?>
 </nav>
-
-<!-- Mobile Hamburger Button (visible only on mobile via CSS) -->
-<button class="hamburger-btn" id="hamburger-toggle" aria-label="<?php esc_attr_e( 'Toggle Menu', 'speedx' ); ?>" aria-expanded="false" aria-controls="mobile-nav-drawer">
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-<line x1="3" y1="6" x2="21" y2="6"></line>
-<line x1="3" y1="12" x2="21" y2="12"></line>
-<line x1="3" y1="18" x2="21" y2="18"></line>
-</svg>
-</button>
-</div>
-</header>
-
-<!-- Mobile Navigation Drawer (hidden by default, shown on mobile when active) -->
-<div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true" aria-label="<?php esc_attr_e( 'Mobile Menu', 'speedx' ); ?>">
-<div class="mobile-nav-inner">
-<?php
-wp_nav_menu( [
-'theme_location' => 'primary',
-'menu_class'     => 'mobile-primary-menu',
-'container'      => false,
-'depth'          => 1,
-] );
-?>
 </div>
 
 <main class="site-content" id="content-container">

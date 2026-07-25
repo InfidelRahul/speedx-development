@@ -267,10 +267,44 @@ p {
 	min-width: 0;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
+	position: relative;
 }
 
 .main-navigation::-webkit-scrollbar {
 	display: none;
+}
+
+/* Hamburger button - Hidden on desktop by default */
+.hamburger-btn {
+	display: none;
+	width: 44px;
+	height: 44px;
+	align-items: center;
+	justify-content: center;
+	background: var(--sx-bg-base);
+	border-radius: var(--sx-radius-btn);
+	box-shadow: var(--sx-shadow-raised);
+	cursor: pointer;
+	border: none;
+	transition: all var(--sx-transition-fast);
+	flex-shrink: 0;
+	z-index: 1002;
+	order: 1;
+}
+
+.hamburger-btn svg {
+	width: 24px;
+	height: 24px;
+	stroke: var(--sx-ink-primary);
+}
+
+.hamburger-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 12px 12px 24px #C4C9D8, -12px -12px 24px #FFFFFF;
+}
+
+.hamburger-btn[aria-expanded="true"] svg {
+	stroke: var(--sx-accent);
 }
 
 .main-navigation .primary-menu,
@@ -284,6 +318,7 @@ p {
 	flex-wrap: nowrap;
 	width: max-content;
 	max-width: 100%;
+	order: 2;
 }
 
 .main-navigation a {
@@ -303,49 +338,6 @@ p {
 	color: var(--sx-accent);
 	box-shadow: var(--sx-shadow-pressed);
 	transform: translateY(1px);
-}
-
-/* Header Actions (Search) - Hidden by default, shown via widget */
-.header-actions {
-	display: none;
-	align-items: center;
-	flex-shrink: 0;
-}
-
-.nav-search-desktop {
-	min-width: 200px;
-}
-
-/* Hamburger button - Hidden on desktop */
-.hamburger-btn {
-	display: none;
-	width: 44px;
-	height: 44px;
-	align-items: center;
-	justify-content: center;
-	background: var(--sx-bg-base);
-	border-radius: var(--sx-radius-btn);
-	box-shadow: var(--sx-shadow-raised);
-	cursor: pointer;
-	border: none;
-	transition: all var(--sx-transition-fast);
-	flex-shrink: 0;
-	z-index: 1002;
-}
-
-.hamburger-btn svg {
-	width: 24px;
-	height: 24px;
-	stroke: var(--sx-ink-primary);
-}
-
-.hamburger-btn:hover {
-	transform: translateY(-2px);
-	box-shadow: 12px 12px 24px #C4C9D8, -12px -12px 24px #FFFFFF;
-}
-
-.hamburger-btn[aria-expanded="true"] svg {
-	stroke: var(--sx-accent);
 }
 
 .site-content {
@@ -928,7 +920,7 @@ align-items: center;
 	stroke: var(--sx-accent);
 }
 
-/* Mobile Navigation Styles */
+/* Mobile Navigation Styles - Transform single menu */
 @media (max-width: 900px) {
 .nav-menu-desktop {
 display: none;
