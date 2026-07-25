@@ -416,23 +416,32 @@ p {
 	border-radius: 50%;
 }
 
+/* Post Feed Grid - Fixed Layout */
 .post-grid {
-	grid-column: 1 / -1;
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-	gap: 30px;
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+        align-items: stretch;
+        grid-auto-flow: dense;
 }
 
+/* Wide/Featured card spans full row - MUST be first child */
+.post-card.wide,
 .post-card.featured {
-	grid-column: span 2;
+        grid-column: 1 / -1;
 }
 
-@media (max-width: 768px) {
-	.post-card.featured {
-		grid-column: span 1;
-	}
+/* Mobile: single column, wide card becomes normal */
+@media (max-width: 900px) {
+        .post-grid {
+                grid-template-columns: 1fr;
+        }
+        .post-card.wide,
+        .post-card.featured {
+                grid-column: auto;
+        }
 }
-
 .post-card {
 	display: flex;
 	flex-direction: column;
@@ -719,4 +728,338 @@ p {
 
 @keyframes fadeUp {
 	to { opacity: 1; transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Card Equal Heights & Bottom-Pinned Actions
+   -------------------------------------------------------------------------- */
+.post-card .cbody {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+}
+
+.post-card .cmeta {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        flex-wrap: wrap;
+        padding: 1rem 1.5rem 1.5rem;
+}
+
+.post-card .author .dt,
+.post-card .muttxt {
+        white-space: nowrap;
+}
+
+.post-card .cact {
+        flex: none;
+        margin-left: auto;
+}
+
+/* Clamp excerpts */
+.excerpt {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+}
+
+.post-card.wide .excerpt,
+.post-card.featured .excerpt {
+        -webkit-line-clamp: 4;
+}
+
+/* Prevent title overflow */
+.post-card h3 {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Navigation Flex Layout & Mobile Hamburger
+   -------------------------------------------------------------------------- */
+.navin {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: nowrap;
+}
+
+.navin > * {
+        min-width: 0;
+}
+
+/* Desktop search inline */
+.nav-search {
+        width: 170px;
+        transition: width 0.3s ease;
+}
+
+.nav-search:focus-within {
+        width: 210px;
+}
+
+/* Hide label in nav search */
+.nav-search .screen-reader-text {
+        display: none;
+}
+
+/* Mobile Nav */
+@media (max-width: 900px) {
+        .nav-menu-desktop {
+                display: none;
+        }
+        
+        .nav-search-desktop {
+                display: none;
+        }
+        
+        .hamburger-btn {
+                display: flex;
+                width: 44px;
+                height: 44px;
+                align-items: center;
+                justify-content: center;
+                background: var(--sx-bg-base);
+                border-radius: var(--sx-radius-btn);
+                box-shadow: var(--sx-shadow-raised);
+                cursor: pointer;
+        }
+        
+        .mobile-nav-drawer {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--sx-bg-base);
+                box-shadow: var(--sx-shadow-raised);
+                padding: 1.5rem;
+                display: none;
+                flex-direction: column;
+                gap: 1rem;
+                z-index: 1000;
+        }
+        
+        .mobile-nav-drawer.active {
+                display: flex;
+        }
+        
+        .mobile-nav-drawer a {
+                display: block;
+                padding: 0.75rem;
+                font-size: 1.1rem;
+                color: var(--sx-ink-primary);
+                text-decoration: none;
+        }
+        
+        .mobile-nav-drawer .input-neu {
+                width: 100%;
+        }
+}
+
+.hamburger-btn {
+        display: none;
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Hero Section Mobile Fixes
+   -------------------------------------------------------------------------- */
+.hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 42px;
+        align-items: center;
+        padding: 3rem 0;
+}
+
+@media (max-width: 900px) {
+        .hero {
+                grid-template-columns: 1fr;
+                align-items: start;
+                padding-top: 38px;
+        }
+        
+        .hero-stage {
+                order: -1;
+        }
+        
+        .feat {
+                transform: none !important;
+                animation: none !important;
+                max-width: 440px;
+                margin: 0 auto;
+        }
+        
+        .orbit {
+                display: none;
+        }
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Footer Grid Responsive
+   -------------------------------------------------------------------------- */
+.footer-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr 1fr;
+        gap: 26px;
+}
+
+.footer-copyright {
+        grid-column: 1 / -1;
+        border-top: 2px dashed #C4C9D8;
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+}
+
+@media (max-width: 760px) {
+        .footer-grid {
+                grid-template-columns: 1fr 1fr;
+        }
+        
+        .fbrand {
+                grid-column: 1 / -1;
+        }
+}
+
+@media (max-width: 460px) {
+        .footer-grid {
+                grid-template-columns: 1fr;
+        }
+}
+
+.footer-links a {
+        display: block;
+        transition: transform 0.2s ease;
+}
+
+.footer-links a:hover {
+        transform: translateX(3px);
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Category Pills Consistent System
+   -------------------------------------------------------------------------- */
+.cat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.35rem 0.75rem;
+        background: var(--sx-bg-base);
+        border-radius: var(--sx-radius-pill);
+        box-shadow: var(--sx-shadow-pressed);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--sx-ink-secondary);
+}
+
+.cat-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+}
+
+.cat-design .cat-dot { background: var(--sx-cat-design); }
+.cat-dev .cat-dot { background: var(--sx-cat-dev); }
+.cat-writing .cat-dot { background: var(--sx-cat-writing); }
+.cat-productivity .cat-dot { background: var(--sx-cat-productivity); }
+
+/* --------------------------------------------------------------------------
+   REPAIR: Feed Post Titles Color Hierarchy
+   -------------------------------------------------------------------------- */
+.post-card h3 a {
+        color: var(--sx-ink-primary);
+        text-decoration: none;
+}
+
+.post-card h3 a:hover {
+        color: var(--sx-accent);
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Stats Chips Grammar
+   -------------------------------------------------------------------------- */
+.stat-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.5rem 0.85rem;
+        background: var(--sx-bg-base);
+        border-radius: var(--sx-radius-pill);
+        box-shadow: var(--sx-shadow-raised);
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--sx-ink-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Reading Progress Bar
+   -------------------------------------------------------------------------- */
+.reading-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 3px;
+        background: var(--sx-accent);
+        width: 0%;
+        z-index: 9999;
+        transition: width 0.1s ease;
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: List View Modifier
+   -------------------------------------------------------------------------- */
+.feed.list-view {
+        grid-template-columns: 1fr;
+}
+
+.feed.list-view .post-card {
+        flex-direction: row;
+}
+
+.feed.list-view .post-image-well {
+        width: 200px;
+        margin: 1.5rem 0 1.5rem 1.5rem;
+        border-radius: var(--sx-radius-card) 0 0 var(--sx-radius-card);
+}
+
+@media (max-width: 768px) {
+        .feed.list-view .post-card {
+                flex-direction: column;
+        }
+        
+        .feed.list-view .post-image-well {
+                width: calc(100% - 3rem);
+                margin: 1.5rem;
+                border-radius: var(--sx-radius-card) var(--sx-radius-card) 0 0;
+        }
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Prevent Horizontal Scroll
+   -------------------------------------------------------------------------- */
+body {
+        overflow-x: hidden;
+}
+
+img, video, iframe {
+        max-width: 100%;
+        height: auto;
+}
+
+/* --------------------------------------------------------------------------
+   REPAIR: Touch Targets Minimum 44px
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+        button, 
+        a.btn-neu, 
+        .hamburger-btn,
+        .cat-pill,
+        .stat-chip {
+                min-height: 44px;
+                min-width: 44px;
+        }
 }
