@@ -1,0 +1,74 @@
+Act as a Principal Software Architect and WordPress Expert with 30+ years of experience. Create a complete, production-ready WordPress theme named "SpeedX" from scratch. 
+
+The theme must be an ultra-lightweight Single Page Application (SPA) that loads once and never refreshes the page, using only Vanilla JavaScript (no frameworks like Vue/React) and the WordPress REST API. The design must be a premium, tactile "Neumorphic Editorial" style.
+
+### 1. Architecture & Standards
+- **Modular PHP**: Do not put all logic in `functions.php`. Split logic into classes inside an `/includes` directory:
+  - `class-speedx-setup.php`: Theme support, menus, thumbnails.
+  - `class-speedx-assets.php`: Enqueue scripts/styles, performance optimizations (remove emojis, defer JS).
+  - `class-speedx-customizer.php`: Theme panel options (colors, SPA settings, typography).
+  - `class-speedx-api.php`: Custom REST API endpoint `/wp-json/speedx/v1/fragment` to return HTML fragments for SPA.
+  - `class-speedx-security.php`: Nonce verification, sanitization, hardening.
+- **Bootstrap**: `functions.php` should only load these classes.
+- **DRY Principle**: Reusable helper functions in `template-functions.php`.
+- **Security**: Strict sanitization, escaping, and nonce checks on all inputs/API calls.
+
+### 2. Design System (Neumorphic Editorial)
+Implement this EXACT design language in `style.css` using CSS Variables:
+- **Canvas**: Light-gray base `#E8ECF3`. NO pure white panels, NO dark mode.
+- **Surfaces**: Dual soft shadows. 
+  - RAISED: `8px 8px 18px #C4C9D8, -8px -8px 18px #FFFFFF`.
+  - PRESSED/Inset: Same shadows but prefixed with `inset` (for inputs, active states).
+  - NO hard borders, NO flat drop shadows, NO gradients.
+- **Radius**: 22px for cards/widgets, 13px for buttons/inputs, pill shape for tags.
+- **Typography**: 
+  - Headings: "Space Grotesk" (weights 500/700, tracking -0.02em).
+  - Body: "Manrope".
+  - Colors: Ink `#2C3346`, Secondary `#4A5168`, Muted `#8B91A4`.
+- **Accent**: Single Teal `#0D9488` for links/active states.
+- **Category Identity**: Tiny colored dot + tinted text on soft inset pill (NO filled blocks).
+- **Images**: Post thumbnails sit inside PRESSED inset "wells" (sunken frames). Hover scales image subtly.
+- **Background**: Subtle radial light + fine monochrome noise.
+
+### 3. Components to Implement
+- **Sticky Nav**: Raised bar. Active menu items depress to "inset". Includes live "N reading now" chip.
+- **Editorial Hero**: Asymmetric layout. Left: Eyebrow pill, huge headline, CTAs. Right: Floating featured post card with inset image well.
+- **Post Feed**: Magazine "Bento" grid. Filter toolbar (raised). Posts are cards with inset image wells, category pills, and action buttons (Like, Comment, Bookmark) that depress on click.
+- **Sidebar**: Widgets as raised cards (Search, Categories with dots, Tag cloud, Reading progress ring, Newsletter).
+- **Comments**: Threaded list. Composer is a PRESSED area. Comments are raised cards; replies are inset cards in a left rail.
+- **Footer**: Raised panel with sliding hover links.
+
+### 4. SPA Functionality (Critical)
+- **Router (`assets/js/router.js`)**: 
+  - Intercept all internal link clicks.
+  - Prevent default browser navigation.
+  - Fetch content via `fetch('/wp-json/speedx/v1/fragment?url=...')`.
+  - Swap ONLY the `#content-container` div.
+  - Update Browser History (`history.pushState`) and Document Title.
+  - Handle Back/Forward buttons.
+  - Add smooth fade transitions between views.
+  - Show a subtle loading indicator/progress bar during fetch.
+- **No Page Reloads**: The header, footer, and nav must remain persistent.
+
+### 5. File Structure to Generate
+Create the following files with full, working code:
+1. `style.css` (Complete design system)
+2. `functions.php` (Bootstrap loader)
+3. `header.php` (Persistent header with nav)
+4. `footer.php` (Persistent footer)
+5. `index.php`, `single.php`, `page.php`, `archive.php`, `search.php`, `404.php`
+6. `comments.php`, `searchform.php`, `sidebar.php`, `template-functions.php`
+7. `includes/class-speedx-setup.php`
+8. `includes/class-speedx-assets.php`
+9. `includes/class-speedx-customizer.php`
+10. `includes/class-speedx-api.php`
+11. `includes/class-speedx-security.php`
+12. `assets/js/router.js` (The SPA engine)
+
+### 6. Output Requirements
+- Provide the FULL code for every file.
+- Ensure code is clean, commented where complex, and follows WordPress Coding Standards.
+- The theme must work immediately upon activation.
+- Ensure the SPA routing works perfectly: clicking links changes content without refreshing the page.
+
+Start by creating the file structure and then output the code for each file sequentially.
