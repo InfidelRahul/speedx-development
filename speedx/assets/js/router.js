@@ -261,43 +261,30 @@ const drawer = document.getElementById('mobile-nav-drawer');
 
 if (!hamburger || !drawer) return;
 
-// Remove old event listeners by cloning
-const newHamburger = hamburger.cloneNode(true);
-hamburger.parentNode.replaceChild(newHamburger, hamburger);
-
-const newDrawer = drawer.cloneNode(true);
-drawer.parentNode.replaceChild(newDrawer, drawer);
-
-// Get fresh references
-const hamburgerEl = document.getElementById('hamburger-toggle');
-const drawerEl = document.getElementById('mobile-nav-drawer');
-
-if (!hamburgerEl || !drawerEl) return;
-
 // Toggle menu on hamburger click
-hamburgerEl.addEventListener('click', (e) => {
+hamburger.addEventListener('click', (e) => {
 e.stopPropagation();
-const isActive = drawerEl.classList.toggle('active');
-hamburgerEl.setAttribute('aria-expanded', isActive ? 'true' : 'false');
-drawerEl.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+const isActive = drawer.classList.toggle('active');
+hamburger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+drawer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
 });
 
 // Close drawer when clicking outside
 document.addEventListener('click', (e) => {
-if (!hamburgerEl.contains(e.target) && !drawerEl.contains(e.target)) {
-drawerEl.classList.remove('active');
-hamburgerEl.setAttribute('aria-expanded', 'false');
-drawerEl.setAttribute('aria-hidden', 'true');
+if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
+drawer.classList.remove('active');
+hamburger.setAttribute('aria-expanded', 'false');
+drawer.setAttribute('aria-hidden', 'true');
 }
 });
 
 // Close drawer when clicking a menu link
-drawerEl.addEventListener('click', (e) => {
+drawer.addEventListener('click', (e) => {
 const link = e.target.closest('a[href]');
 if (link) {
-drawerEl.classList.remove('active');
-hamburgerEl.setAttribute('aria-expanded', 'false');
-drawerEl.setAttribute('aria-hidden', 'true');
+drawer.classList.remove('active');
+hamburger.setAttribute('aria-expanded', 'false');
+drawer.setAttribute('aria-hidden', 'true');
 }
 });
 }
