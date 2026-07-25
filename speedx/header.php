@@ -85,6 +85,5 @@ wp_nav_menu( [
 ] );
 ?>
 </div>
-</div>
 
 <main class="site-content" id="content-container">

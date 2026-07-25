@@ -1,4 +1,4 @@
-```
+```php
 # Compiled and build artifacts
 *.pyc
 __pycache__/
@@ -6,21 +6,17 @@ __pycache__/
 *.obj
 dist/
 build/
-*.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
+target/
 
 # Dependencies
 .venv/
 venv/
 node_modules/
-target/
-.gradle/
+.julia/
+zig*/
 .mypy_cache/
 .pytest_cache/
+.gradle/
 
 # Logs and temp files
 *.log
