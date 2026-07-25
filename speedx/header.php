@@ -89,6 +89,5 @@ wp_nav_menu( [
 <!-- Mobile CTA if needed -->
 <a href="#subscribe" class="btn-neu primary"><?php esc_html_e( 'Subscribe', 'speedx' ); ?></a>
 </div>
-</div>
 
 <main class="site-content" id="content-container">
