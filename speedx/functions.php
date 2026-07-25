@@ -269,12 +269,12 @@ function speedx_register_rest_routes() {
         'permission_callback' => '__return_true',
         'args'                => array(
             'template' => array(
-                'required'          => true,
+                'required'          => false,
                 'type'              => 'string',
                 'sanitize_callback' => 'sanitize_text_field',
                 'validate_callback' => 'speedx_validate_template',
             ),
-            'path'     => array(
+            'url'      => array(
                 'required'          => true,
                 'type'              => 'string',
                 'sanitize_callback' => 'esc_url_raw',
@@ -309,15 +309,24 @@ function speedx_validate_template($template, $request, $param) {
  */
 function speedx_rest_fragment_callback($request) {
     $template = $request->get_param('template');
-    $path     = $request->get_param('path');
+    $url      = $request->get_param('url');
     
-    if (!$template || !$path) {
-        return new WP_Error('missing_params', 'Missing template or path', array('status' => 400));
+    if (!$url) {
+        return new WP_Error('missing_params', 'Missing URL parameter', array('status' => 400));
+    }
+    
+    // Auto-detect template if not provided
+    if (!$template) {
+        $template = speedx_detect_template_from_url($url);
     }
     
     // Setup WordPress environment for the requested path
-    $path = str_replace(home_url('/'), '', $path);
+    $path = str_replace(home_url('/'), '', $url);
     $_SERVER['REQUEST_URI'] = '/' . trim($path, '/');
+    
+    // Parse the request to set up proper query vars
+    global $wp;
+    $wp->parse_request($_SERVER['REQUEST_URI']);
     
     // Capture template output
     ob_start();
@@ -325,9 +334,54 @@ function speedx_rest_fragment_callback($request) {
     $content = ob_get_clean();
     
     return new WP_REST_Response(array(
-        'content' => $content,
-        'title'   => wp_get_document_title(),
+        'content'           => $content,
+        'title'             => wp_get_document_title(),
+        'meta_description'  => speedx_get_meta_description(),
     ), 200);
+}
+
+/**
+ * Detect appropriate template based on URL pattern
+ */
+function speedx_detect_template_from_url($url) {
+    $path = parse_url($url, PHP_URL_PATH);
+    
+    // Check for date-based archives (single posts)
+    if (preg_match('#/\d{4}/\d{2}/#', $path)) {
+        return 'single';
+    }
+    
+    // Check for pagination
+    if (strpos($path, '/page/') !== false) {
+        return 'archive';
+    }
+    
+    // Check for category/tag/author archives
+    if (strpos($path, '/category/') !== false || 
+        strpos($path, '/tag/') !== false || 
+        strpos($path, '/author/') !== false) {
+        return 'archive';
+    }
+    
+    // Default to index for homepage
+    return 'index';
+}
+
+/**
+ * Get meta description for SEO
+ */
+function speedx_get_meta_description() {
+    if (is_singular()) {
+        global $post;
+        if ($post && $post->post_excerpt) {
+            return wp_strip_all_tags($post->post_excerpt);
+        }
+        if ($post && $post->post_content) {
+            return wp_trim_words(wp_strip_all_tags($post->post_content), 55);
+        }
+    }
+    
+    return get_bloginfo('description');
 }
 
 /**

@@ -135,7 +135,7 @@
             history.pushState({ url: url }, '', url);
         }
 
-        // Fetch new content
+        // Fetch new content with full URL for REST API
         fetchContent(url)
             .then((data) => {
                 updatePage(data);
@@ -168,7 +168,20 @@
      * @returns {Promise<Object>} - Response data
      */
     function fetchContent(url) {
-        const apiUrl = CONFIG.apiEndpoint + '?url=' + encodeURIComponent(url);
+        // Determine template based on URL pattern
+        let template = 'index';
+        
+        if (url.includes('/page/') || url.includes('/category/') || url.includes('/tag/') || url.includes('/author/')) {
+            template = 'archive';
+        } else if (url.includes('?s=')) {
+            template = 'search';
+        } else if (url.match(/\/\d{4}\/\d{2}\//)) {
+            template = 'single';
+        } else if (url === window.location.origin + '/' || url === window.location.origin) {
+            template = 'index';
+        }
+        
+        const apiUrl = CONFIG.apiEndpoint + '?template=' + encodeURIComponent(template) + '&url=' + encodeURIComponent(url);
         
         return fetch(apiUrl, {
             method: 'GET',
@@ -180,7 +193,7 @@
         })
         .then((response) => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error('Network response was not ok: ' + response.statusText);
             }
             return response.json();
         });
